@@ -1,1662 +1,1012 @@
-# DevRadar — End-to-End Modification Prompt
-### Existing repo: https://github.com/iamabhaydawar/devradar
+# DevRadar — Catppuccin Theme + Opening Screen Prompt
+### Mocha flavor · LLM Wiki inspired opening · Career knowledge graph
 
-Paste this entire prompt into Claude Code or any AI coding tool.
-Work on the cloned repo. Do not start fresh.
+Paste this into Claude to apply Catppuccin Mocha theme throughout DevRadar.
 
 ---
 
 ```
-You are modifying an existing project called DevRadar.
-
-Repo: https://github.com/iamabhaydawar/devradar
-Clone it first, then make all changes described below.
-
-DevRadar is already a working app with:
-- Node.js + Express backend
-- React 18 + Tailwind CSS frontend
-- HydraDB for memory
-- Claude API for AI
-- 20 startups, 15 hackathons, 30 skills in JSON files
-- 8 working API endpoints
-- Deployed on Vercel + Render
-
-We are upgrading it to implement the LLM Wiki pattern for careers.
-The core idea: instead of a simple dashboard, DevRadar becomes a
-personal career knowledge base that builds itself as the student
-feeds it data — job descriptions, LinkedIn URLs, screenshots.
-
-New features to add:
-1. Multi-format ingest (text + URL + screenshot)
-2. Two-step LLM Wiki ingest pipeline
-3. Career wiki pages stored in HydraDB
-4. sigma.js knowledge graph visualization
-5. Wiki-based chat with citations
-6. Structured roadmap with resources
-7. Notion-style white light theme UI
+Apply Catppuccin Mocha theme to all DevRadar frontend files.
+Also create a new polished opening/onboarding screen
+inspired by LLM Wiki's landing pattern, adapted for DevRadar's career niche.
 
 ---
 
-IMPORTANT RULES
+CATPPUCCIN MOCHA — FULL PALETTE
 
-Never delete existing working code. Only extend it.
-Keep all existing API endpoints exactly as they are.
-Keep all existing data JSON files exactly as they are.
-Keep seed-demo.js, vercel.json, render.yaml unchanged.
-Keep StackInput.jsx working — just restyle it for light theme.
-Keep MemoryBadge.jsx logic — just restyle for light theme.
-Git commits: lowercase, no emoji, no conventional prefixes,
-             commit every 30-60 minutes of work.
+Paste this as CSS variables at the top of index.css:
+
+:root {
+  /* Catppuccin Mocha — Base */
+  --ctp-rosewater: #F5E0DC;
+  --ctp-flamingo:  #F2CDCD;
+  --ctp-pink:      #F5C2E7;
+  --ctp-mauve:     #CBA6F7;
+  --ctp-red:       #F38BA8;
+  --ctp-maroon:    #EBA0AC;
+  --ctp-peach:     #FAB387;
+  --ctp-yellow:    #F9E2AF;
+  --ctp-green:     #A6E3A1;
+  --ctp-teal:      #94E2D5;
+  --ctp-sky:       #89DCEB;
+  --ctp-sapphire:  #74C7EC;
+  --ctp-blue:      #89B4FA;
+  --ctp-lavender:  #B4BEFE;
+
+  /* Catppuccin Mocha — Text */
+  --ctp-text:      #CDD6F4;
+  --ctp-subtext1:  #BAC2DE;
+  --ctp-subtext0:  #A6ADC8;
+
+  /* Catppuccin Mocha — Overlay */
+  --ctp-overlay2:  #9399B2;
+  --ctp-overlay1:  #7F849C;
+  --ctp-overlay0:  #6C7086;
+
+  /* Catppuccin Mocha — Surface */
+  --ctp-surface2:  #585B70;
+  --ctp-surface1:  #45475A;
+  --ctp-surface0:  #313244;
+
+  /* Catppuccin Mocha — Base */
+  --ctp-base:      #1E1E2E;
+  --ctp-mantle:    #181825;
+  --ctp-crust:     #11111B;
+}
 
 ---
 
-STEP 1 — INSTALL NEW PACKAGES
+DESIGN SYSTEM USING CATPPUCCIN MOCHA
 
-In backend directory:
-npm install node-fetch turndown
+Page background:       var(--ctp-base)       #1E1E2E
+Sidebar background:    var(--ctp-mantle)     #181825
+Card background:       var(--ctp-surface0)   #313244
+Card hover:            var(--ctp-surface1)   #45475A
+Input background:      var(--ctp-surface0)   #313244
+Border default:        var(--ctp-surface1)   #45475A
+Border active:         var(--ctp-mauve)      #CBA6F7
+Border subtle:         var(--ctp-surface0)   #313244
 
-In frontend directory:
-npm install sigma graphology graphology-layout-forceatlas2
+Text primary:          var(--ctp-text)       #CDD6F4
+Text secondary:        var(--ctp-subtext1)   #BAC2DE
+Text muted:            var(--ctp-overlay1)   #7F849C
+Text placeholder:      var(--ctp-overlay0)   #6C7086
 
----
+Accent primary:        var(--ctp-mauve)      #CBA6F7
+Accent hover:          var(--ctp-lavender)   #B4BEFE
+Accent light bg:       rgba(203,166,247,0.1)
 
-STEP 2 — CREATE backend/fetcher.js
+Success:               var(--ctp-green)      #A6E3A1
+Success bg:            rgba(166,227,161,0.1)
+Warning:               var(--ctp-yellow)     #F9E2AF
+Warning bg:            rgba(249,226,175,0.1)
+Danger:                var(--ctp-red)        #F38BA8
+Danger bg:             rgba(243,139,168,0.1)
+Info:                  var(--ctp-blue)       #89B4FA
+Info bg:               rgba(137,180,250,0.1)
 
-New file. Handles external content fetching.
-
-const fetch = require('node-fetch');
-const TurndownService = require('turndown');
-const turndown = new TurndownService();
-
-async function fetchURL(url) {
-  try {
-    const response = await fetch(url, {
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (compatible; DevRadar/1.0)'
-      },
-      timeout: 10000
-    });
-    const html = await response.text();
-    const markdown = turndown.turndown(html);
-    // Clean up: remove nav, footer noise, keep main content
-    const lines = markdown.split('\n')
-      .filter(line => line.trim().length > 10)
-      .slice(0, 200); // max 200 lines
-    return lines.join('\n');
-  } catch (error) {
-    console.error('fetchURL error:', error.message);
-    return null;
-  }
-}
-
-function detectInputType(input) {
-  if (!input) return 'text';
-  const trimmed = input.trim();
-  if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) {
-    return 'url';
-  }
-  if (trimmed.startsWith('data:image') || trimmed.length > 1000 &&
-      /^[A-Za-z0-9+/=]+$/.test(trimmed.replace(/\s/g, ''))) {
-    return 'screenshot';
-  }
-  return 'text';
-}
-
-module.exports = { fetchURL, detectInputType };
+Shadow:
+  card:   0 2px 8px rgba(17,17,27,0.4)
+  panel:  0 4px 20px rgba(17,17,27,0.6)
+  glow:   0 0 20px rgba(203,166,247,0.15)
 
 ---
 
-STEP 3 — EXTEND backend/hydradb.js
+GRAPH NODE COLORS (Catppuccin palette)
 
-Add these new functions to the existing file.
-Do not remove any existing functions.
+User center node:      var(--ctp-yellow)     #F9E2AF  ← warm, stands out
+Companies:             var(--ctp-peach)      #FAB387  ← orange warmth
+Skills known:          var(--ctp-blue)       #89B4FA  ← calm blue
+Skills gap:            var(--ctp-red)        #F38BA8  ← soft red not harsh
+Hackathons:            var(--ctp-mauve)      #CBA6F7  ← signature catppuccin
+Concepts:              var(--ctp-teal)       #94E2D5  ← teal accent
 
-// --- WIKI STORAGE FUNCTIONS ---
+Edge colors:
+Known skill edge:      var(--ctp-blue)       opacity 0.5
+Gap edge dashed:       var(--ctp-red)        opacity 0.4
+Hackathon edge:        var(--ctp-mauve)      opacity 0.4
+Default edge:          var(--ctp-surface2)   opacity 0.6
 
-const WIKI_PREFIX = 'wiki_';
+---
 
-async function saveWikiPage(userId, pageKey, content) {
-  const key = WIKI_PREFIX + userId + '_' + pageKey.replace(/\//g, '_');
-  try {
-    await client.set(key, JSON.stringify({
-      key: pageKey,
-      content,
-      updated_at: new Date().toISOString()
-    }));
-    console.log('[HydraDB] Wiki page saved:', pageKey);
-    return true;
-  } catch (error) {
-    console.error('[HydraDB] saveWikiPage error:', error.message);
-    LOCAL_FALLBACK.set(key, { key: pageKey, content,
-      updated_at: new Date().toISOString() });
-    return true;
-  }
-}
+OPENING SCREEN — LLM WIKI INSPIRED
 
-async function getWikiPage(userId, pageKey) {
-  const key = WIKI_PREFIX + userId + '_' + pageKey.replace(/\//g, '_');
-  try {
-    const result = await client.get(key);
-    return result ? JSON.parse(result) : null;
-  } catch (error) {
-    return LOCAL_FALLBACK.get(key) || null;
-  }
-}
+Create a new file: frontend/src/components/OpeningScreen.jsx
 
-async function getAllWikiPages(userId) {
-  try {
-    const prefix = WIKI_PREFIX + userId + '_';
-    const keys = await client.list(prefix);
-    const pages = [];
-    for (const key of (keys || [])) {
-      const page = await client.get(key);
-      if (page) pages.push(JSON.parse(page));
-    }
-    return pages;
-  } catch (error) {
-    const pages = [];
-    for (const [key, value] of LOCAL_FALLBACK.entries()) {
-      if (key.startsWith(WIKI_PREFIX + userId)) pages.push(value);
-    }
-    return pages;
-  }
-}
+This is shown BEFORE the user enters their stack.
+It replaces the plain StackInput as the very first thing they see.
 
-async function updateWikiIndex(userId, newPageEntry) {
-  let index = await getWikiPage(userId, 'index') || { content: '# Career Wiki Index\n', key: 'index' };
-  if (!index.content.includes(newPageEntry.key)) {
-    index.content += `\n- [[${newPageEntry.key}]] — ${newPageEntry.title || newPageEntry.key}`;
-    await saveWikiPage(userId, 'index', index.content);
-  }
-}
+LLM Wiki inspiration:
+  - Clean centered content
+  - Logo prominent at top
+  - Short punchy description
+  - Visual preview hint (graph nodes floating in bg)
+  - One clear CTA
 
-async function appendToLog(userId, logEntry) {
-  let log = await getWikiPage(userId, 'log') || { content: '# Career Log\n', key: 'log' };
-  const entry = `\n[${new Date().toISOString()}] ${logEntry.action}: ${logEntry.detail}`;
-  log.content += entry;
-  await saveWikiPage(userId, 'log', log.content);
-}
+DevRadar adaptation:
+  - Career focused copy
+  - Show the three outputs (graph, chat, roadmap) as feature pills
+  - Indian developer context in the copy
 
-async function getGraphData(userId) {
-  const pages = await getAllWikiPages(userId);
-  const nodes = [];
-  const edges = [];
-  const nodeSet = new Set();
+OPENING SCREEN LAYOUT:
 
-  for (const page of pages) {
-    if (!page.key || page.key === 'index' || page.key === 'log' || page.key === 'overview') continue;
+Full viewport, background: var(--ctp-base) #1E1E2E
+
+Subtle background effect:
+  Floating colored circles, very low opacity, absolute positioned
+  Like graph nodes floating behind the content
+  Use CSS animation: slow float up and down (10-15s loop)
+  Colors from catppuccin palette, opacity 0.06
+
+  Example circles (position absolute, pointer-events none):
+    circle 1: 320px, ctp-peach, top 10%, left 5%, opacity 0.05
+    circle 2: 240px, ctp-mauve, top 60%, left 80%, opacity 0.06
+    circle 3: 180px, ctp-blue, top 30%, right 10%, opacity 0.05
+    circle 4: 280px, ctp-teal, bottom 15%, left 30%, opacity 0.04
+
+Center card (max-width 480px, centered):
+  Background: var(--ctp-mantle) #181825
+  Border: 1px solid var(--ctp-surface1)
+  Border-radius: 16px
+  Padding: 48px 40px
+  Box-shadow: panel shadow + subtle mauve glow
+
+  TOP SECTION:
+    Logo row:
+      Small colored squares stacked (like graph nodes) — decorative
+      Three squares: ctp-peach 8px, ctp-blue 8px, ctp-mauve 8px
+      Gap 4px, inline
     
-    const parts = page.key.split('/');
-    const type = parts[0]; // companies, skills, hackathons, gaps
-    const name = parts[1] || page.key;
+    App name: "DevRadar"
+      Font: 28px, weight 700, color: var(--ctp-text)
+      Letter-spacing: -0.5px
     
-    if (!nodeSet.has(page.key)) {
-      nodeSet.add(page.key);
-      nodes.push({
-        id: page.key,
-        label: name.replace(/-/g, ' '),
-        type: type,
-        content_preview: (page.content || '').slice(0, 200)
-      });
-    }
-
-    // Extract [[wikilinks]] from content and create edges
-    const wikilinks = (page.content || '').match(/\[\[([^\]]+)\]\]/g) || [];
-    for (const link of wikilinks) {
-      const target = link.replace('[[', '').replace(']]', '');
-      if (nodeSet.has(target) || pages.find(p => p.key === target)) {
-        edges.push({ from: page.key, to: target, type: 'wikilink' });
-      }
-    }
-  }
-
-  // Add user center node
-  nodes.unshift({ id: 'user_center', label: 'You', type: 'user' });
-
-  return { nodes, edges };
-}
-
-module.exports = {
-  // ... existing exports
-  saveWikiPage,
-  getWikiPage,
-  getAllWikiPages,
-  updateWikiIndex,
-  appendToLog,
-  getGraphData
-};
-
----
-
-STEP 4 — EXTEND backend/claude.js
-
-Add these new functions. Keep all existing ones.
-
-const Anthropic = require('@anthropic-ai/sdk');
-const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
-
-async function ingestStep1(rawInput, existingWikiSummary, userStack) {
-  try {
-    const response = await client.messages.create({
-      model: 'claude-sonnet-4-20250514',
-      max_tokens: 2000,
-      system: `You are analyzing career data for an Indian developer student.
-               The student's current stack: ${JSON.stringify(userStack)}.
-               Existing wiki summary: ${existingWikiSummary || 'None yet'}.
-               Respond ONLY with valid JSON. No extra text.`,
-      messages: [{
-        role: 'user',
-        content: `Analyze this career data and extract structured information:
-
-${rawInput}
-
-Return JSON:
-{
-  "companies_found": [
-    {
-      "name": "Razorpay",
-      "role": "Frontend Engineer",
-      "skills_required": ["React", "TypeScript"],
-      "salary_range": "15-25 LPA",
-      "location": "Bangalore",
-      "interview_topics": ["DSA", "System Design"],
-      "match_with_student": 80,
-      "missing_skills": ["TypeScript"]
-    }
-  ],
-  "hackathons_found": [
-    {
-      "name": "ETHIndia 2025",
-      "deadline": "2025-08-15",
-      "skills_needed": ["React", "Solidity"],
-      "prize": "500000",
-      "platform": "Devfolio",
-      "match_with_student": 72
-    }
-  ],
-  "skills_identified": [
-    { "name": "TypeScript", "student_has": false, "reason": "Required by Razorpay" }
-  ],
-  "gaps_identified": [
-    {
-      "skill": "TypeScript",
-      "companies_needing_it": ["Razorpay", "CRED"],
-      "learning_time_weeks": 2,
-      "difficulty": "Beginner friendly"
-    }
-  ],
-  "wiki_pages_to_create": [
-    { "key": "companies/razorpay", "title": "Razorpay", "type": "company" },
-    { "key": "gaps/typescript", "title": "TypeScript Gap", "type": "gap" }
-  ],
-  "summary": "One paragraph summary of what was found"
-}`
-      }]
-    });
+    Tagline: "Your personal career knowledge base"
+      Font: 14px, color: var(--ctp-subtext1)
+      Margin-top: 4px
     
-    const text = response.content[0].text;
-    return JSON.parse(text.replace(/```json|```/g, '').trim());
-  } catch (error) {
-    console.error('[Claude] ingestStep1 error:', error.message);
-    return { companies_found: [], hackathons_found: [], skills_identified: [],
-             gaps_identified: [], wiki_pages_to_create: [], summary: 'Processing failed' };
-  }
-}
+    Hackathon badge:
+      "WikiThon 2025"
+      Background: rgba(203,166,247,0.15)
+      Border: 1px solid rgba(203,166,247,0.3)
+      Color: var(--ctp-mauve)
+      Padding: 3px 10px, border-radius: 999px, font-size: 11px
+      Margin-top: 12px, display inline-block
 
-async function ingestStep2GeneratePage(pageInfo, analysis, userStack) {
-  try {
-    const response = await client.messages.create({
-      model: 'claude-sonnet-4-20250514',
-      max_tokens: 1000,
-      system: 'Generate a career wiki page in markdown format with YAML frontmatter. Include [[wikilinks]] to connect related pages. Respond ONLY with the markdown content.',
-      messages: [{
-        role: 'user',
-        content: `Generate a wiki page for: ${pageInfo.key}
-Type: ${pageInfo.type}
-Title: ${pageInfo.title}
-Analysis data: ${JSON.stringify(analysis)}
-Student stack: ${JSON.stringify(userStack)}
+  DIVIDER:
+    1px solid var(--ctp-surface1), margin: 24px 0
 
-Format:
----
-type: ${pageInfo.type}
-title: ${pageInfo.title}
-updated: ${new Date().toISOString().split('T')[0]}
----
-
-# ${pageInfo.title}
-
-[content with [[wikilinks]] to related pages]`
-      }]
-    });
-    return response.content[0].text;
-  } catch (error) {
-    console.error('[Claude] ingestStep2 error:', error.message);
-    return `---\ntype: ${pageInfo.type}\ntitle: ${pageInfo.title}\n---\n\n# ${pageInfo.title}\n\nProcessing failed.`;
-  }
-}
-
-async function queryWiki(question, wikiPages, userContext) {
-  try {
-    const pagesContext = wikiPages.slice(0, 10).map((p, i) =>
-      `[${i+1}] ${p.key}:\n${(p.content || '').slice(0, 500)}`
-    ).join('\n\n---\n\n');
-
-    const response = await client.messages.create({
-      model: 'claude-sonnet-4-20250514',
-      max_tokens: 1500,
-      system: `You are DevRadar's AI assistant answering questions about a student's career.
-               User context: ${JSON.stringify(userContext)}.
-               Answer using the wiki pages provided. Always cite sources as [1], [2], etc.
-               Be specific and actionable.`,
-      messages: [{
-        role: 'user',
-        content: `Wiki pages available:\n${pagesContext}\n\nQuestion: ${question}`
-      }]
-    });
-
-    const answer = response.content[0].text;
-    const citations = wikiPages.slice(0, 10).map((p, i) => ({
-      index: i + 1,
-      key: p.key,
-      preview: (p.content || '').slice(0, 100)
-    }));
-
-    return { answer, citations };
-  } catch (error) {
-    console.error('[Claude] queryWiki error:', error.message);
-    return { answer: 'Could not process your question. Please try again.', citations: [] };
-  }
-}
-
-async function generateRoadmap(userStack, gapPages, companyPages, hackathonPages) {
-  try {
-    const response = await client.messages.create({
-      model: 'claude-sonnet-4-20250514',
-      max_tokens: 2000,
-      system: 'Generate a structured week-by-week career roadmap for an Indian developer student. Include real resources, YouTube videos, and relevant hackathons. Respond ONLY with valid JSON.',
-      messages: [{
-        role: 'user',
-        content: `Student stack: ${JSON.stringify(userStack)}
-Gaps: ${JSON.stringify(gapPages.slice(0, 5))}
-Target companies: ${companyPages.slice(0, 3).map(p => p.key).join(', ')}
-Available hackathons: ${hackathonPages.slice(0, 3).map(p => p.key).join(', ')}
-
-Generate roadmap JSON:
-{
-  "weeks": [
-    {
-      "week_range": "Week 1-2",
-      "focus_skill": "TypeScript",
-      "why": "Required by Razorpay, CRED",
-      "daily_time_hours": 2,
-      "resources": [
-        { "type": "docs", "title": "TypeScript Official Docs", "url": "https://typescriptlang.org/docs" },
-        { "type": "video", "title": "TypeScript Full Course - Hitesh Choudhary", "url": "https://youtube.com/..." },
-        { "type": "practice", "title": "Build: Convert todo app to TypeScript", "url": null },
-        { "type": "blog", "title": "TypeScript for React Devs", "url": "https://ui.dev/typescript" }
-      ],
-      "hackathon_to_target": "HackRx 6.0 (90% match with current stack — register now)",
-      "milestone": "Complete 10 TypeScript exercises on exercism.io"
-    }
-  ],
-  "immediate_hackathons": [
-    { "name": "HackRx 6.0", "deadline": "Aug 5", "match": 90, "register_url": "..." }
-  ],
-  "company_readiness": [
-    { "company": "Razorpay", "ready_in": "3 weeks", "after_skill": "TypeScript" }
-  ],
-  "overall_timeline_weeks": 8
-}`
-      }]
-    });
-
-    const text = response.content[0].text;
-    return JSON.parse(text.replace(/```json|```/g, '').trim());
-  } catch (error) {
-    console.error('[Claude] generateRoadmap error:', error.message);
-    return { weeks: [], immediate_hackathons: [], company_readiness: [], overall_timeline_weeks: 8 };
-  }
-}
-
-module.exports = {
-  // ... existing exports
-  ingestStep1,
-  ingestStep2GeneratePage,
-  queryWiki,
-  generateRoadmap
-};
-
----
-
-STEP 5 — EXTEND backend/server.js
-
-Add these new endpoints after existing ones.
-Do not touch existing endpoints.
-
-const { fetchURL, detectInputType } = require('./fetcher');
-const {
-  saveWikiPage, getWikiPage, getAllWikiPages,
-  updateWikiIndex, appendToLog, getGraphData
-} = require('./hydradb');
-const {
-  ingestStep1, ingestStep2GeneratePage,
-  queryWiki, generateRoadmap
-} = require('./claude');
-
-// POST /api/ingest
-app.post('/api/ingest', async (req, res) => {
-  try {
-    const { userId, content, type, imageBase64 } = req.body;
-    if (!userId || !content) return res.status(400).json({ error: 'userId and content required' });
-
-    const user = await getUser(userId);
-    if (!user) return res.status(404).json({ error: 'User not found' });
-
-    let rawContent = content;
-    const inputType = type || detectInputType(content);
-    console.log(`[Ingest] userId=${userId} type=${inputType}`);
-
-    // Step 0: Fetch content if URL
-    if (inputType === 'url') {
-      const fetched = await fetchURL(content);
-      if (!fetched) return res.status(400).json({ error: 'Could not fetch URL' });
-      rawContent = fetched;
-    }
-
-    // Step 0b: Screenshot via Claude Vision
-    if (inputType === 'screenshot' && imageBase64) {
-      const visionResponse = await claude.messages.create({
-        model: 'claude-sonnet-4-20250514',
-        max_tokens: 1000,
-        messages: [{
-          role: 'user',
-          content: [
-            { type: 'image', source: { type: 'base64', media_type: 'image/jpeg', data: imageBase64 } },
-            { type: 'text', text: 'Extract all career-relevant text from this image. Include job titles, skills, salary, company name, deadlines, and any other career information visible.' }
-          ]
-        }]
-      });
-      rawContent = visionResponse.content[0].text;
-    }
-
-    // Get existing wiki summary for context
-    const overviewPage = await getWikiPage(userId, 'overview');
-    const existingSummary = overviewPage?.content?.slice(0, 500) || '';
-
-    // Step 1: Analysis
-    const analysis = await ingestStep1(rawContent, existingSummary, user.stack || []);
-    console.log(`[Ingest] Step 1 complete. Pages to create: ${analysis.wiki_pages_to_create?.length}`);
-
-    // Step 2: Generate wiki pages
-    const createdPages = [];
-    for (const pageInfo of (analysis.wiki_pages_to_create || [])) {
-      const pageContent = await ingestStep2GeneratePage(pageInfo, analysis, user.stack || []);
-      await saveWikiPage(userId, pageInfo.key, pageContent);
-      await updateWikiIndex(userId, pageInfo);
-      createdPages.push(pageInfo.key);
-    }
-
-    // Update overview
-    const overviewContent = `---\ntype: overview\nupdated: ${new Date().toISOString().split('T')[0]}\n---\n\n# Career Overview\n\n${analysis.summary}\n\nLast ingested: ${new Date().toLocaleString()}`;
-    await saveWikiPage(userId, 'overview', overviewContent);
-
-    // Log the ingest
-    await appendToLog(userId, {
-      action: 'ingest',
-      detail: `${inputType} source processed. ${createdPages.length} pages created/updated.`
-    });
-
-    res.json({
-      success: true,
-      pages_created: createdPages,
-      analysis_summary: analysis.summary,
-      companies_found: analysis.companies_found?.length || 0,
-      gaps_identified: analysis.gaps_identified?.length || 0,
-      hackathons_found: analysis.hackathons_found?.length || 0
-    });
-
-  } catch (error) {
-    console.error('[/api/ingest] error:', error);
-    res.status(500).json({ error: 'Ingest failed', detail: error.message });
-  }
-});
-
-// GET /api/graph/:userId
-app.get('/api/graph/:userId', async (req, res) => {
-  try {
-    const { userId } = req.params;
-    const user = await getUser(userId);
-    if (!user) return res.status(404).json({ error: 'User not found' });
-    const graphData = await getGraphData(userId);
-    res.json(graphData);
-  } catch (error) {
-    res.status(500).json({ error: 'Graph fetch failed' });
-  }
-});
-
-// GET /api/wiki/:userId/page
-app.get('/api/wiki/:userId/:pageType/:pageName', async (req, res) => {
-  try {
-    const { userId, pageType, pageName } = req.params;
-    const page = await getWikiPage(userId, `${pageType}/${pageName}`);
-    if (!page) return res.status(404).json({ error: 'Page not found' });
-    res.json(page);
-  } catch (error) {
-    res.status(500).json({ error: 'Wiki fetch failed' });
-  }
-});
-
-// POST /api/chat
-app.post('/api/chat', async (req, res) => {
-  try {
-    const { userId, question } = req.body;
-    if (!userId || !question) return res.status(400).json({ error: 'userId and question required' });
-
-    const user = await getUser(userId);
-    const allPages = await getAllWikiPages(userId);
+  MIDDLE SECTION — What it does:
+    Heading: "Build your career graph"
+      Font: 20px, weight 600, color: var(--ctp-text)
     
-    // Simple relevance: search for question keywords in page content
-    const keywords = question.toLowerCase().split(' ').filter(w => w.length > 3);
-    const relevantPages = allPages
-      .filter(p => keywords.some(kw => (p.content || '').toLowerCase().includes(kw)))
-      .slice(0, 10);
+    Subtext: "Feed job descriptions, LinkedIn posts, or screenshots.
+              DevRadar extracts career insights and builds a
+              personal knowledge graph — powered by HydraDB memory."
+      Font: 13px, color: var(--ctp-subtext0)
+      Line-height: 1.6, margin-top: 8px
 
-    // If no wiki pages yet, fall back to pre-loaded data context
-    const pagesForQuery = relevantPages.length > 0 ? relevantPages : allPages.slice(0, 5);
+    Feature pills row (margin-top 16px):
+      Three small pills in a row:
+      
+      Pill 1: "🗺  Career Graph"
+        Background: rgba(137,180,250,0.1)
+        Border: 1px solid rgba(137,180,250,0.25)
+        Color: var(--ctp-blue)
+      
+      Pill 2: "💬  Ask Anything"
+        Background: rgba(166,227,161,0.1)
+        Border: 1px solid rgba(166,227,161,0.25)
+        Color: var(--ctp-green)
+      
+      Pill 3: "📍  Roadmap"
+        Background: rgba(250,179,135,0.1)
+        Border: 1px solid rgba(250,179,135,0.25)
+        Color: var(--ctp-peach)
+      
+      Each pill: padding 5px 12px, border-radius 999px, font-size 12px
 
-    const userContext = {
-      stack: user?.stack || [],
-      experience: user?.experience_level || 'beginner',
-      goals: user?.goals || []
-    };
+  DIVIDER: same as above
 
-    const result = await queryWiki(question, pagesForQuery, userContext);
-    res.json(result);
-  } catch (error) {
-    console.error('[/api/chat] error:', error);
-    res.status(500).json({ error: 'Chat failed', answer: 'Something went wrong. Please try again.' });
-  }
-});
+  BOTTOM SECTION — Stack Input (inline, no separate page):
+    
+    Label: "What's your current tech stack?"
+      Font: 13px, weight 500, color: var(--ctp-subtext1)
+      Margin-bottom: 8px
 
-// GET /api/roadmap/:userId
-app.get('/api/roadmap/:userId', async (req, res) => {
-  try {
-    const { userId } = req.params;
-    const user = await getUser(userId);
-    if (!user) return res.status(404).json({ error: 'User not found' });
+    Tag input container:
+      Background: var(--ctp-surface0)
+      Border: 1px solid var(--ctp-surface1)
+      Border-radius: 10px
+      Padding: 8px
+      Min-height: 72px
+      On focus: border-color var(--ctp-mauve)
+      Transition: 150ms
 
-    const allPages = await getAllWikiPages(userId);
-    const gapPages = allPages.filter(p => p.key?.startsWith('gaps/'));
-    const companyPages = allPages.filter(p => p.key?.startsWith('companies/'));
-    const hackathonPages = allPages.filter(p => p.key?.startsWith('hackathons/'));
+      Skill tags inside:
+        Background: rgba(203,166,247,0.2)
+        Border: 1px solid rgba(203,166,247,0.4)
+        Color: var(--ctp-mauve)
+        Padding: 3px 10px, border-radius: 999px, font-size: 12px
+        × button: color var(--ctp-overlay1), hover var(--ctp-red)
 
-    const roadmap = await generateRoadmap(
-      user.stack || [],
-      gapPages,
-      companyPages,
-      hackathonPages
-    );
+      Input inside container:
+        Background: transparent, border: none
+        Color: var(--ctp-text), font-size: 13px
+        Placeholder color: var(--ctp-overlay0)
 
-    res.json(roadmap);
-  } catch (error) {
-    console.error('[/api/roadmap] error:', error);
-    res.status(500).json({ error: 'Roadmap generation failed' });
-  }
-});
+    Experience row (margin-top 12px):
+      Label: "Experience" 12px var(--ctp-overlay1)
+      Three buttons: Beginner · Intermediate · Advanced
+      
+      Inactive button:
+        Border: 1px solid var(--ctp-surface2)
+        Background: transparent
+        Color: var(--ctp-subtext0)
+        Padding: 6px 14px, border-radius: 6px, font-size: 12px
+      
+      Active button:
+        Border: 1px solid var(--ctp-mauve)
+        Background: rgba(203,166,247,0.15)
+        Color: var(--ctp-mauve)
 
-// GET /api/wiki-pages/:userId
-app.get('/api/wiki-pages/:userId', async (req, res) => {
-  try {
-    const { userId } = req.params;
-    const pages = await getAllWikiPages(userId);
-    res.json({ pages, count: pages.length });
-  } catch (error) {
-    res.status(500).json({ error: 'Failed to fetch wiki pages' });
-  }
-});
+    Goal row (margin-top 8px):
+      Label: "Looking for" 12px var(--ctp-overlay1)
+      Four toggle buttons: Internship · Job · Hackathon · Freelance
+      Same inactive/active style as experience
+
+    CTA button (margin-top 20px):
+      Full width, height: 44px
+      Background: var(--ctp-mauve)
+      Color: var(--ctp-base) — dark text on mauve button
+      Border-radius: 10px, font-size: 14px, font-weight: 600
+      Letter-spacing: -0.2px
+      Hover: background var(--ctp-lavender), slight scale(1.01)
+      Loading: "Building your graph..." with subtle spinner
+      Disabled: opacity 0.4, cursor not-allowed
+      No border
+
+    Footer text below button:
+      "Powered by HydraDB · Claude AI · WikiThon 2025"
+      Font: 11px, color: var(--ctp-overlay0), text-align: center
+      Margin-top: 12px
+
+ANIMATION for opening screen:
+  Card fades in from translateY(8px) opacity 0 to translateY(0) opacity 1
+  Duration: 400ms, easing: cubic-bezier(0.16, 1, 0.3, 1)
+  Background circles float with:
+    @keyframes float {
+      0%, 100% { transform: translateY(0px); }
+      50% { transform: translateY(-20px); }
+    }
+    Each circle has different animation-duration (12s, 15s, 10s, 18s)
+    and animation-delay (0s, 2s, 4s, 1s)
 
 ---
 
-STEP 6 — UPDATE frontend/src/App.jsx
+SIDEBAR — CATPPUCCIN MOCHA
 
-Extend existing App.jsx. Keep all existing state and logic.
-Add new state below existing state.
+Background: var(--ctp-mantle) #181825
+Right border: 1px solid var(--ctp-surface0)
 
-// Add to existing state:
-const [graphData, setGraphData] = useState(null)
-const [selectedNode, setSelectedNode] = useState(null)
-const [chatHistory, setChatHistory] = useState([])
-const [roadmap, setRoadmap] = useState(null)
-const [currentView, setCurrentView] = useState("graph")
-const [wikiPages, setWikiPages] = useState([])
-const [ingestLoading, setIngestLoading] = useState(false)
+Logo section:
+  "DevRadar" — font 15px weight 700 color var(--ctp-text)
+  "WikiThon 2025" badge:
+    Background: rgba(203,166,247,0.15)
+    Color: var(--ctp-mauve), font-size: 10px
+    Border: 1px solid rgba(203,166,247,0.25)
+    Padding: 2px 8px, border-radius: 999px
 
-// Add fetch functions:
-const fetchGraph = async (uid) => {
-  try {
-    const res = await axios.get(`${API}/api/graph/${uid}`);
-    setGraphData(res.data);
-  } catch (e) { console.error('graph fetch failed', e); }
-};
+Nav items:
+  Height: 36px, padding: 0 12px, border-radius: 8px
+  Font: 13px, color: var(--ctp-subtext0)
+  Icon + label gap: 8px
+  
+  Hover: background var(--ctp-surface0), color var(--ctp-text)
+  
+  Active:
+    Background: rgba(203,166,247,0.12)
+    Color: var(--ctp-mauve)
+    Left border: 2px solid var(--ctp-mauve)
+    Font-weight: 500
 
-const fetchWikiPages = async (uid) => {
-  try {
-    const res = await axios.get(`${API}/api/wiki-pages/${uid}`);
-    setWikiPages(res.data.pages || []);
-  } catch (e) { console.error('wiki pages fetch failed', e); }
-};
+Wiki section headers:
+  Font: 10px uppercase, letter-spacing: 0.8px
+  Color: var(--ctp-overlay0)
+  Padding: 0 12px
 
-// Call after userId is set:
-useEffect(() => {
-  if (userId) {
-    fetchGraph(userId);
-    fetchWikiPages(userId);
+Wiki entity items:
+  Same as nav items but smaller (font 12px, height 28px)
+  Color: var(--ctp-subtext0)
+  Hover: background var(--ctp-surface0), color var(--ctp-text)
+
+Count badges:
+  Companies: background rgba(250,179,135,0.15) color var(--ctp-peach)
+  Skills: background rgba(137,180,250,0.15) color var(--ctp-blue)
+  Hackathons: background rgba(203,166,247,0.15) color var(--ctp-mauve)
+  Gaps: background rgba(243,139,168,0.15) color var(--ctp-red)
+
+Bottom status:
+  Text: var(--ctp-overlay0), font 11px
+  Green dot: #A6E3A1 (ctp-green), pulse animation
+
+---
+
+TOPBAR — CATPPUCCIN MOCHA
+
+Background: var(--ctp-mantle)
+Bottom border: 1px solid var(--ctp-surface0)
+Height: 48px
+
+Current view title: var(--ctp-text), 14px weight 600
+
+Stack pills:
+  Background: rgba(137,180,250,0.12)
+  Border: 1px solid rgba(137,180,250,0.2)
+  Color: var(--ctp-blue)
+  Padding: 2px 10px, border-radius: 999px, font-size: 11px
+
+---
+
+CAREER GRAPH — CATPPUCCIN MOCHA
+
+Canvas background: var(--ctp-base) #1E1E2E
+
+vis-network / sigma config:
+  Font color: var(--ctp-text) #CDD6F4
+  Font stroke: var(--ctp-base) #1E1E2E (for readability)
+  Edge default: var(--ctp-surface2) #585B70, opacity 0.7
+  
+  Node shadow: color #11111B, enabled true
+  
+  Node groups:
+    user:      background #F9E2AF (ctp-yellow), border #F5E0DC
+    companies: background #FAB387 (ctp-peach), border #EBA0AC
+    skills:    background #89B4FA (ctp-blue), border #74C7EC
+    gaps:      background #F38BA8 (ctp-red), border #EBA0AC, dashes [4,2]
+    hackathons:background #CBA6F7 (ctp-mauve), border #B4BEFE
+
+Tooltip (vis-network override):
+  .vis-tooltip {
+    background: var(--ctp-surface0) !important;
+    border: 1px solid var(--ctp-surface2) !important;
+    border-radius: 8px !important;
+    color: var(--ctp-text) !important;
+    font-family: Inter, sans-serif !important;
+    font-size: 12px !important;
+    padding: 8px 12px !important;
+    box-shadow: 0 4px 20px rgba(17,17,27,0.6) !important;
   }
-}, [userId]);
 
-// Layout when view === "dashboard":
-// Replace old Dashboard render with:
-if (view === "dashboard") {
-  return (
-    <div className="flex h-screen bg-white overflow-hidden">
-      <Sidebar
-        wikiPages={wikiPages}
-        currentView={currentView}
-        setCurrentView={setCurrentView}
-        onEntityClick={(nodeId) => setSelectedNode(nodeId)}
-      />
-      <div className="flex-1 flex flex-col overflow-hidden">
-        <Topbar
-          currentView={currentView}
-          userId={userId}
-          userStack={userStack}
-        />
-        <div className="flex-1 overflow-hidden relative">
-          {returnContext?.hasHistory && (
-            <MemoryBadge
-              message={returnContext.message}
-              urgentItems={returnContext.urgentItems}
-            />
-          )}
-          {currentView === "graph" && (
-            <CareerGraph
-              graphData={graphData}
-              userStack={userStack}
-              onNodeClick={setSelectedNode}
-            />
-          )}
-          {currentView === "ingest" && (
-            <IngestPanel
-              userId={userId}
-              onIngestComplete={() => {
-                fetchGraph(userId);
-                fetchWikiPages(userId);
-              }}
-            />
-          )}
-          {currentView === "chat" && (
-            <ChatInterface
-              userId={userId}
-              chatHistory={chatHistory}
-              setChatHistory={setChatHistory}
-            />
-          )}
-          {currentView === "roadmap" && (
-            <RoadmapView
-              userId={userId}
-              roadmap={roadmap}
-              setRoadmap={setRoadmap}
-            />
-          )}
-          {currentView === "journey" && (
-            <JourneyView userId={userId} wikiPages={wikiPages} />
-          )}
-        </div>
-      </div>
-      {selectedNode && (
-        <DetailPanel
-          nodeId={selectedNode}
-          wikiPages={wikiPages}
-          userId={userId}
-          onClose={() => setSelectedNode(null)}
-        />
-      )}
-    </div>
-  );
+Node legend:
+  Background: var(--ctp-surface0)
+  Border: 1px solid var(--ctp-surface1)
+  Border-radius: 8px
+  Color: var(--ctp-subtext1)
+  Title: var(--ctp-overlay1) 10px uppercase
+
+Minimap:
+  Background: var(--ctp-mantle)
+  Border: 1px solid var(--ctp-surface0)
+
+---
+
+DETAIL PANEL — CATPPUCCIN MOCHA
+
+Background: var(--ctp-mantle)
+Left border: 1px solid var(--ctp-surface0)
+Box-shadow: -4px 0 20px rgba(17,17,27,0.5)
+
+Header:
+  Border-bottom: 1px solid var(--ctp-surface0)
+  Type badge colors:
+    companies: bg rgba(250,179,135,0.15) color ctp-peach border rgba(250,179,135,0.25)
+    skills:    bg rgba(137,180,250,0.15) color ctp-blue border rgba(137,180,250,0.25)
+    gaps:      bg rgba(243,139,168,0.15) color ctp-red border rgba(243,139,168,0.25)
+    hackathons:bg rgba(203,166,247,0.15) color ctp-mauve border rgba(203,166,247,0.25)
+
+Close button: color var(--ctp-overlay1), hover ctp-red
+
+Section dividers: 1px solid var(--ctp-surface0)
+Section headers: var(--ctp-overlay0), 10px uppercase
+
+Content text: var(--ctp-text)
+Secondary text: var(--ctp-subtext1)
+
+Skill pills:
+  Known: bg rgba(166,227,161,0.15) border rgba(166,227,161,0.3) color ctp-green
+  Missing: bg rgba(243,139,168,0.15) border rgba(243,139,168,0.3) color ctp-red
+
+Company chips:
+  bg ctp-surface0, border ctp-surface1, color ctp-text
+  hover: bg ctp-surface1
+
+Action buttons:
+  Primary: bg ctp-mauve, color ctp-base, hover bg ctp-lavender
+  Secondary: border ctp-surface2, color ctp-subtext1, hover bg ctp-surface0
+
+---
+
+INGEST PANEL — CATPPUCCIN MOCHA
+
+Background: var(--ctp-base)
+Max-width: 640px, centered
+
+Title: var(--ctp-text) 22px weight 700
+Subtitle: var(--ctp-subtext0) 13px
+
+Tab switcher:
+  Container: bg ctp-surface0, border-radius 10px, padding 4px
+  Active tab: bg ctp-surface1, color ctp-text, border-radius 8px, shadow
+  Inactive tab: color ctp-overlay1, hover color ctp-subtext0
+
+Textarea / URL input:
+  Background: var(--ctp-surface0)
+  Border: 1px solid var(--ctp-surface1)
+  Color: var(--ctp-text)
+  Placeholder: var(--ctp-overlay0)
+  Border-radius: 10px, padding: 12px
+  Focus: border-color var(--ctp-mauve), outline none
+
+Upload area:
+  Border: 2px dashed var(--ctp-surface2)
+  Color: var(--ctp-overlay1)
+  Border-radius: 10px
+  Hover: border-color var(--ctp-mauve)
+
+Process button: same as CTA — ctp-mauve background, ctp-base text
+
+Activity log:
+  Background: var(--ctp-surface0)
+  Border: 1px solid var(--ctp-surface1)
+  Border-radius: 8px
+  Time text: var(--ctp-overlay0)
+  Message text: var(--ctp-subtext1)
+
+Success result:
+  Background: rgba(166,227,161,0.08)
+  Border: 1px solid rgba(166,227,161,0.25)
+  Color: var(--ctp-green)
+
+Error:
+  Background: rgba(243,139,168,0.08)
+  Border: 1px solid rgba(243,139,168,0.25)
+  Color: var(--ctp-red)
+
+---
+
+CHAT INTERFACE — CATPPUCCIN MOCHA
+
+Background: var(--ctp-base)
+
+User message bubble:
+  Background: var(--ctp-mauve)
+  Color: var(--ctp-base)
+  Border-radius: 16px 16px 4px 16px
+
+Assistant message bubble:
+  Background: var(--ctp-surface0)
+  Border: 1px solid var(--ctp-surface1)
+  Color: var(--ctp-text)
+  Border-radius: 16px 16px 16px 4px
+
+Citation chips:
+  Background: var(--ctp-surface1)
+  Border: 1px solid var(--ctp-surface2)
+  Color: var(--ctp-subtext1)
+  Font: 11px mono
+
+Suggestion buttons:
+  Border: 1px solid var(--ctp-surface2)
+  Color: var(--ctp-blue)
+  Background: rgba(137,180,250,0.05)
+  Hover: background rgba(137,180,250,0.12)
+
+Input bar:
+  Background: var(--ctp-mantle)
+  Border-top: 1px solid var(--ctp-surface0)
+  Input field: bg ctp-surface0, border ctp-surface1, color ctp-text
+  Focus border: ctp-mauve
+  Send button: bg ctp-mauve, color ctp-base
+
+Typing dots: color var(--ctp-mauve)
+
+---
+
+ROADMAP VIEW — CATPPUCCIN MOCHA
+
+Background: var(--ctp-base)
+
+Immediate hackathon banner:
+  Background: rgba(250,179,135,0.08)
+  Border: 1px solid rgba(250,179,135,0.25)
+  Title: var(--ctp-peach)
+
+Week cards:
+  Border: 1px solid var(--ctp-surface1)
+  Border-radius: 12px
+  
+  Header section:
+    Background: var(--ctp-surface0)
+    Color: var(--ctp-text)
+  
+  Body section:
+    Background: var(--ctp-mantle)
+  
+  Resource icons:
+    📖 docs: var(--ctp-sapphire)
+    🎥 video: var(--ctp-red)
+    🛠 practice: var(--ctp-green)
+    📝 blog: var(--ctp-yellow)
+  
+  Resource links: color var(--ctp-blue), hover underline
+  
+  Hackathon target pill:
+    Background: rgba(203,166,247,0.1)
+    Border: 1px solid rgba(203,166,247,0.2)
+    Color: var(--ctp-mauve)
+  
+  Milestone text: var(--ctp-overlay1), border-top ctp-surface0
+
+Company readiness section:
+  Background: var(--ctp-surface0)
+  Border: 1px solid var(--ctp-surface1)
+  Color: var(--ctp-text)
+
+---
+
+JOURNEY VIEW — CATPPUCCIN MOCHA
+
+Background: var(--ctp-base)
+
+Stats grid cards:
+  Background: var(--ctp-surface0)
+  Border: 1px solid var(--ctp-surface1)
+  Number: var(--ctp-text) 24px bold
+  Label: var(--ctp-overlay0) 11px
+
+Timeline vertical line: var(--ctp-surface1)
+
+Timeline dots:
+  companies: var(--ctp-peach) #FAB387
+  skills: var(--ctp-blue) #89B4FA
+  gaps: var(--ctp-red) #F38BA8
+  hackathons: var(--ctp-mauve) #CBA6F7
+  default: var(--ctp-overlay0)
+
+Event label: var(--ctp-text) 13px
+Event time: var(--ctp-overlay0) 11px
+
+---
+
+MEMORY BADGE — CATPPUCCIN MOCHA
+
+Background: rgba(249,226,175,0.06)
+Border-bottom: 1px solid rgba(249,226,175,0.15)
+Left section icon + text: var(--ctp-yellow) #F9E2AF
+
+Message text: var(--ctp-subtext1)
+
+Urgent pills:
+  Red (< 3 days): bg rgba(243,139,168,0.15) color ctp-red border rgba(243,139,168,0.3)
+  Orange (< 7 days): bg rgba(250,179,135,0.15) color ctp-peach border rgba(250,179,135,0.3)
+
+Bottom bar text: var(--ctp-overlay0) 11px
+HydraDB active dot: var(--ctp-green) pulse animation
+
+---
+
+SCROLLBAR STYLING
+
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: var(--ctp-base); }
+::-webkit-scrollbar-thumb {
+  background: var(--ctp-surface2);
+  border-radius: 999px;
+}
+::-webkit-scrollbar-thumb:hover { background: var(--ctp-overlay0); }
+
+---
+
+SELECTION COLOR
+
+::selection {
+  background: rgba(203,166,247,0.3);
+  color: var(--ctp-text);
 }
 
 ---
 
-STEP 7 — CREATE frontend/src/components/CareerGraph.jsx
+TYPOGRAPHY
 
-import { useEffect, useRef } from "react";
-import Graph from "graphology";
-import { circular } from "graphology-layout";
-import forceAtlas2 from "graphology-layout-forceatlas2";
-import Sigma from "sigma";
-
-const NODE_COLORS = {
-  user:      "#F59E0B",  // amber
-  companies: "#F97316",  // orange
-  skills:    "#3B82F6",  // blue
-  gaps:      "#EF4444",  // red
-  hackathons:"#8B5CF6",  // purple
-  default:   "#94A3B8"   // gray
-};
-
-const NODE_SIZES = {
-  user: 20,
-  companies: 14,
-  skills: 10,
-  gaps: 9,
-  hackathons: 12,
-  default: 8
-};
-
-export default function CareerGraph({ graphData, userStack, onNodeClick }) {
-  const containerRef = useRef(null);
-  const sigmaRef = useRef(null);
-  const graphRef = useRef(null);
-
-  useEffect(() => {
-    if (!containerRef.current || !graphData) return;
-
-    const graph = new Graph();
-    graphRef.current = graph;
-
-    // Add user center node
-    graph.addNode("user_center", {
-      label: "You",
-      size: NODE_SIZES.user,
-      color: NODE_COLORS.user,
-      x: 0, y: 0
-    });
-
-    // Add wiki page nodes
-    for (const node of (graphData.nodes || [])) {
-      if (node.id === "user_center") continue;
-      try {
-        const parts = node.id.split("/");
-        const type = parts[0] || "default";
-        graph.addNode(node.id, {
-          label: node.label || parts[1] || node.id,
-          size: NODE_SIZES[type] || NODE_SIZES.default,
-          color: NODE_COLORS[type] || NODE_COLORS.default,
-          x: Math.random() * 10 - 5,
-          y: Math.random() * 10 - 5,
-          nodeType: type
-        });
-      } catch (e) {}
-    }
-
-    // Connect user to all company and hackathon nodes
-    for (const node of (graphData.nodes || [])) {
-      if (node.id === "user_center") continue;
-      const type = node.id.split("/")[0];
-      if (type === "companies" || type === "hackathons") {
-        try {
-          graph.addEdge("user_center", node.id, {
-            size: 1.5,
-            color: "#CBD5E1"
-          });
-        } catch (e) {}
-      }
-    }
-
-    // Add wiki edges
-    for (const edge of (graphData.edges || [])) {
-      try {
-        if (graph.hasNode(edge.from) && graph.hasNode(edge.to) &&
-            !graph.hasEdge(edge.from, edge.to)) {
-          graph.addEdge(edge.from, edge.to, {
-            size: 1,
-            color: "#E2E8F0"
-          });
-        }
-      } catch (e) {}
-    }
-
-    // Layout
-    circular.assign(graph);
-    const positions = forceAtlas2(graph, {
-      iterations: 100,
-      settings: {
-        gravity: 1,
-        scalingRatio: 2,
-        strongGravityMode: true
-      }
-    });
-    forceAtlas2.assign(graph, { iterations: 50 });
-
-    // Init sigma
-    if (sigmaRef.current) { sigmaRef.current.kill(); }
-    const sigma = new Sigma(graph, containerRef.current, {
-      renderEdgeLabels: false,
-      defaultEdgeColor: "#CBD5E1",
-      defaultNodeColor: "#94A3B8",
-    });
-
-    sigma.on("clickNode", ({ node }) => {
-      if (onNodeClick) onNodeClick(node);
-    });
-
-    sigma.on("enterNode", ({ node }) => {
-      const attrs = graph.getNodeAttributes(node);
-      containerRef.current.style.cursor = "pointer";
-    });
-
-    sigma.on("leaveNode", () => {
-      containerRef.current.style.cursor = "default";
-    });
-
-    sigmaRef.current = sigma;
-
-    return () => {
-      if (sigmaRef.current) { sigmaRef.current.kill(); sigmaRef.current = null; }
-    };
-  }, [graphData]);
-
-  if (!graphData) return (
-    <div className="flex-1 flex items-center justify-center text-gray-400">
-      <div className="text-center">
-        <div className="text-4xl mb-4">🗺</div>
-        <p className="text-lg font-medium text-gray-600">Your career graph is empty</p>
-        <p className="text-sm mt-2">Go to Feed to add job descriptions, URLs, or screenshots</p>
-      </div>
-    </div>
-  );
-
-  return (
-    <div className="relative w-full h-full">
-      <div ref={containerRef} className="w-full h-full" />
-      {/* Node legend */}
-      <div className="absolute bottom-4 left-4 bg-white border border-gray-200 rounded-lg p-3 shadow-sm text-xs">
-        <div className="font-semibold text-gray-600 mb-2 uppercase tracking-wide">Node Types</div>
-        {[
-          { color: "#F59E0B", label: "You" },
-          { color: "#F97316", label: "Companies" },
-          { color: "#3B82F6", label: "Skills" },
-          { color: "#EF4444", label: "Gaps" },
-          { color: "#8B5CF6", label: "Hackathons" }
-        ].map(item => (
-          <div key={item.label} className="flex items-center gap-2 mb-1">
-            <div className="w-3 h-3 rounded-full" style={{ backgroundColor: item.color }} />
-            <span className="text-gray-600">{item.label}</span>
-          </div>
-        ))}
-      </div>
-      {/* Empty state hint */}
-      {graphData.nodes?.length <= 1 && (
-        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-          <div className="text-center text-gray-400">
-            <p className="text-sm">Feed career data to build your graph</p>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
+Font: Inter from Google Fonts (already installed)
+All text uses catppuccin variables — no hardcoded colors
+Line-height: 1.6 for body text
+Monospace: JetBrains Mono or system-mono for code/citations
 
 ---
 
-STEP 8 — CREATE frontend/src/components/IngestPanel.jsx
+RESPONSIVE CATPPUCCIN ADJUSTMENTS
 
-import { useState, useRef } from "react";
-import axios from "axios";
+Mobile bottom tab bar:
+  Background: var(--ctp-mantle)
+  Top border: 1px solid var(--ctp-surface0)
+  Active tab: color var(--ctp-mauve)
+  Inactive tab: color var(--ctp-overlay1)
 
-const API = import.meta.env.VITE_API_URL || "http://localhost:3001";
-
-export default function IngestPanel({ userId, onIngestComplete }) {
-  const [activeTab, setActiveTab] = useState("text");
-  const [textContent, setTextContent] = useState("");
-  const [urlContent, setUrlContent] = useState("");
-  const [processing, setProcessing] = useState(false);
-  const [result, setResult] = useState(null);
-  const [error, setError] = useState(null);
-  const [activityLog, setActivityLog] = useState([]);
-  const fileInputRef = useRef(null);
-
-  const addLog = (msg) => setActivityLog(prev => [...prev, { msg, time: new Date().toLocaleTimeString() }]);
-
-  const handleIngest = async () => {
-    setProcessing(true);
-    setResult(null);
-    setError(null);
-    setActivityLog([]);
-
-    try {
-      let body = { userId };
-
-      if (activeTab === "text") {
-        if (!textContent.trim()) { setError("Please paste some content"); setProcessing(false); return; }
-        addLog("Reading text content...");
-        body.content = textContent;
-        body.type = "text";
-
-      } else if (activeTab === "url") {
-        if (!urlContent.trim()) { setError("Please enter a URL"); setProcessing(false); return; }
-        addLog("Fetching URL content...");
-        body.content = urlContent;
-        body.type = "url";
-
-      } else if (activeTab === "screenshot") {
-        const file = fileInputRef.current?.files?.[0];
-        if (!file) { setError("Please select an image"); setProcessing(false); return; }
-        addLog("Reading image...");
-        const base64 = await new Promise((res) => {
-          const reader = new FileReader();
-          reader.onload = (e) => res(e.target.result.split(",")[1]);
-          reader.readAsDataURL(file);
-        });
-        body.content = "screenshot";
-        body.type = "screenshot";
-        body.imageBase64 = base64;
-      }
-
-      addLog("Running analysis (Step 1)...");
-      addLog("Extracting companies, skills, hackathons...");
-
-      const response = await axios.post(`${API}/api/ingest`, body);
-
-      addLog("Generating wiki pages (Step 2)...");
-      addLog(`Created ${response.data.pages_created?.length || 0} wiki pages`);
-      addLog("Updating career graph...");
-      addLog("Done!");
-
-      setResult(response.data);
-      if (onIngestComplete) onIngestComplete();
-
-      // Clear inputs
-      setTextContent("");
-      setUrlContent("");
-      if (fileInputRef.current) fileInputRef.current.value = "";
-
-    } catch (err) {
-      setError(err.response?.data?.error || "Processing failed. Please try again.");
-      addLog("Error: " + (err.response?.data?.error || err.message));
-    } finally {
-      setProcessing(false);
-    }
-  };
-
-  const tabs = ["text", "url", "screenshot"];
-  const tabLabels = { text: "Paste Text", url: "Enter URL", screenshot: "Upload Image" };
-
-  return (
-    <div className="flex-1 overflow-auto p-6 max-w-2xl mx-auto">
-      <h1 className="text-2xl font-bold text-gray-900 mb-1">Feed Career Data</h1>
-      <p className="text-gray-500 text-sm mb-6">
-        Paste job descriptions, LinkedIn URLs, hackathon pages, or screenshots.
-        DevRadar extracts career insights and adds them to your personal wiki.
-      </p>
-
-      {/* Tab switcher */}
-      <div className="flex gap-1 bg-gray-100 rounded-lg p-1 mb-4 w-fit">
-        {tabs.map(tab => (
-          <button
-            key={tab}
-            onClick={() => setActiveTab(tab)}
-            className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${
-              activeTab === tab
-                ? "bg-white shadow-sm text-gray-900"
-                : "text-gray-500 hover:text-gray-700"
-            }`}
-          >
-            {tabLabels[tab]}
-          </button>
-        ))}
-      </div>
-
-      {/* Text tab */}
-      {activeTab === "text" && (
-        <div>
-          <label className="text-sm font-medium text-gray-700 block mb-2">
-            Paste job description, notes, or any career text
-          </label>
-          <textarea
-            value={textContent}
-            onChange={e => setTextContent(e.target.value)}
-            placeholder="Senior Frontend Engineer at Razorpay&#10;Requirements: React, TypeScript, GraphQL&#10;Salary: 18-28 LPA&#10;Location: Bangalore..."
-            className="w-full h-48 border border-gray-200 rounded-lg p-3 text-sm text-gray-900 focus:outline-none focus:border-blue-400 resize-none"
-          />
-        </div>
-      )}
-
-      {/* URL tab */}
-      {activeTab === "url" && (
-        <div>
-          <label className="text-sm font-medium text-gray-700 block mb-2">
-            Enter a URL (LinkedIn job, Devfolio hackathon, company career page)
-          </label>
-          <input
-            type="url"
-            value={urlContent}
-            onChange={e => setUrlContent(e.target.value)}
-            placeholder="https://linkedin.com/jobs/view/..."
-            className="w-full border border-gray-200 rounded-lg p-3 text-sm text-gray-900 focus:outline-none focus:border-blue-400"
-          />
-          <div className="mt-3 flex gap-2 flex-wrap">
-            {["linkedin.com/jobs", "devfolio.co", "unstop.com", "hackerearth.com"].map(hint => (
-              <span key={hint} className="text-xs bg-gray-100 text-gray-500 px-2 py-1 rounded">
-                {hint}
-              </span>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Screenshot tab */}
-      {activeTab === "screenshot" && (
-        <div>
-          <label className="text-sm font-medium text-gray-700 block mb-2">
-            Upload a screenshot (job post, LinkedIn, tweet, anything)
-          </label>
-          <div
-            className="border-2 border-dashed border-gray-200 rounded-lg p-8 text-center cursor-pointer hover:border-blue-300 transition-colors"
-            onClick={() => fileInputRef.current?.click()}
-          >
-            <div className="text-4xl mb-2">📷</div>
-            <p className="text-sm text-gray-500">Click to select image or drag and drop</p>
-            <p className="text-xs text-gray-400 mt-1">PNG, JPG, JPEG supported</p>
-          </div>
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept="image/*"
-            className="hidden"
-          />
-        </div>
-      )}
-
-      {error && (
-        <div className="mt-3 p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-600">
-          {error}
-        </div>
-      )}
-
-      {/* Process button */}
-      <button
-        onClick={handleIngest}
-        disabled={processing}
-        className="mt-4 w-full bg-blue-500 hover:bg-blue-600 disabled:bg-blue-300 text-white font-medium py-3 rounded-lg text-sm transition-colors"
-      >
-        {processing ? "Processing..." : "Process & Add to Career Wiki"}
-      </button>
-
-      {/* Activity log */}
-      {activityLog.length > 0 && (
-        <div className="mt-4 bg-gray-50 rounded-lg p-3 border border-gray-100">
-          <div className="text-xs font-medium text-gray-500 mb-2 uppercase tracking-wide">Activity</div>
-          {activityLog.map((log, i) => (
-            <div key={i} className="flex gap-2 text-xs text-gray-600 mb-1">
-              <span className="text-gray-400">{log.time}</span>
-              <span>{log.msg}</span>
-            </div>
-          ))}
-        </div>
-      )}
-
-      {/* Result */}
-      {result && (
-        <div className="mt-4 bg-green-50 border border-green-200 rounded-lg p-4">
-          <div className="font-medium text-green-800 mb-2">Successfully processed</div>
-          <div className="text-sm text-green-700">{result.analysis_summary}</div>
-          <div className="flex gap-4 mt-3 text-xs text-green-600">
-            <span>{result.companies_found} companies found</span>
-            <span>{result.gaps_identified} gaps identified</span>
-            <span>{result.hackathons_found} hackathons found</span>
-          </div>
-          <div className="mt-2 text-xs text-green-600">
-            Wiki pages created: {result.pages_created?.join(", ") || "none"}
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
+Mobile detail panel (bottom sheet):
+  Background: var(--ctp-mantle)
+  Drag handle: var(--ctp-surface2)
+  Border-radius top: 16px
 
 ---
 
-STEP 9 — CREATE frontend/src/components/ChatInterface.jsx
+COMPLETE index.css FILE
+
+Replace existing index.css with:
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --ctp-rosewater: #F5E0DC;
+  --ctp-flamingo:  #F2CDCD;
+  --ctp-pink:      #F5C2E7;
+  --ctp-mauve:     #CBA6F7;
+  --ctp-red:       #F38BA8;
+  --ctp-maroon:    #EBA0AC;
+  --ctp-peach:     #FAB387;
+  --ctp-yellow:    #F9E2AF;
+  --ctp-green:     #A6E3A1;
+  --ctp-teal:      #94E2D5;
+  --ctp-sky:       #89DCEB;
+  --ctp-sapphire:  #74C7EC;
+  --ctp-blue:      #89B4FA;
+  --ctp-lavender:  #B4BEFE;
+  --ctp-text:      #CDD6F4;
+  --ctp-subtext1:  #BAC2DE;
+  --ctp-subtext0:  #A6ADC8;
+  --ctp-overlay2:  #9399B2;
+  --ctp-overlay1:  #7F849C;
+  --ctp-overlay0:  #6C7086;
+  --ctp-surface2:  #585B70;
+  --ctp-surface1:  #45475A;
+  --ctp-surface0:  #313244;
+  --ctp-base:      #1E1E2E;
+  --ctp-mantle:    #181825;
+  --ctp-crust:     #11111B;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  background: var(--ctp-base);
+  color: var(--ctp-text);
+  -webkit-font-smoothing: antialiased;
+  line-height: 1.6;
+}
+
+::selection { background: rgba(203,166,247,0.3); color: var(--ctp-text); }
+
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: var(--ctp-base); }
+::-webkit-scrollbar-thumb { background: var(--ctp-surface2); border-radius: 999px; }
+::-webkit-scrollbar-thumb:hover { background: var(--ctp-overlay0); }
+
+.vis-tooltip {
+  background: var(--ctp-surface0) !important;
+  border: 1px solid var(--ctp-surface2) !important;
+  border-radius: 8px !important;
+  color: var(--ctp-text) !important;
+  font-family: 'Inter', sans-serif !important;
+  font-size: 12px !important;
+  padding: 8px 12px !important;
+  box-shadow: 0 4px 20px rgba(17,17,27,0.6) !important;
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-20px); }
+}
+
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
+@keyframes fade-up {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-fade-up { animation: fade-up 400ms cubic-bezier(0.16,1,0.3,1) forwards; }
+.animate-pulse-dot { animation: pulse-dot 2s ease-in-out infinite; }
+
+---
+
+OPENING SCREEN COMPONENT
+
+Create frontend/src/components/OpeningScreen.jsx:
 
 import { useState, useRef, useEffect } from "react";
 import axios from "axios";
 
 const API = import.meta.env.VITE_API_URL || "http://localhost:3001";
 
-export default function ChatInterface({ userId, chatHistory, setChatHistory }) {
+const SKILL_SUGGESTIONS = [
+  "React", "Node.js", "Python", "TypeScript", "JavaScript",
+  "Go", "Java", "Docker", "PostgreSQL", "MongoDB",
+  "AWS", "GraphQL", "Next.js", "Vue.js", "Django"
+];
+
+export default function OpeningScreen({ onComplete }) {
+  const [skills, setSkills] = useState([]);
   const [input, setInput] = useState("");
+  const [suggestions, setSuggestions] = useState([]);
+  const [experience, setExperience] = useState("beginner");
+  const [goals, setGoals] = useState([]);
   const [loading, setLoading] = useState(false);
-  const bottomRef = useRef(null);
+  const inputRef = useRef(null);
 
-  useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [chatHistory]);
+  const handleInput = (val) => {
+    setInput(val);
+    if (val.trim().length > 0) {
+      const matches = SKILL_SUGGESTIONS.filter(s =>
+        s.toLowerCase().includes(val.toLowerCase()) && !skills.includes(s)
+      );
+      setSuggestions(matches.slice(0, 5));
+    } else {
+      setSuggestions([]);
+    }
+  };
 
-  const sendMessage = async () => {
-    if (!input.trim() || loading) return;
-    const question = input.trim();
+  const addSkill = (skill) => {
+    if (skill && !skills.includes(skill) && skills.length < 15) {
+      setSkills([...skills, skill]);
+    }
     setInput("");
-    setChatHistory(prev => [...prev, { role: "user", content: question }]);
-    setLoading(true);
+    setSuggestions([]);
+    inputRef.current?.focus();
+  };
 
+  const removeSkill = (skill) => setSkills(skills.filter(s => s !== skill));
+
+  const toggleGoal = (goal) => {
+    setGoals(prev => prev.includes(goal) ? prev.filter(g => g !== goal) : [...prev, goal]);
+  };
+
+  const handleKeyDown = (e) => {
+    if ((e.key === "Enter" || e.key === ",") && input.trim()) {
+      e.preventDefault();
+      addSkill(input.trim().replace(",", ""));
+    }
+  };
+
+  const handleSubmit = async () => {
+    if (skills.length === 0) return;
+    setLoading(true);
     try {
-      const res = await axios.post(`${API}/api/chat`, { userId, question });
-      setChatHistory(prev => [...prev, {
-        role: "assistant",
-        content: res.data.answer,
-        citations: res.data.citations || []
-      }]);
+      const res = await axios.post(`${API}/api/user/init`, {
+        stack: skills,
+        experience,
+        goals
+      });
+      localStorage.setItem("devradar_userId", res.data.userId);
+      onComplete({ userId: res.data.userId, stack: skills, experience, goals });
     } catch (err) {
-      setChatHistory(prev => [...prev, {
-        role: "assistant",
-        content: "Something went wrong. Please try again.",
-        citations: []
-      }]);
+      console.error("Init failed:", err);
     } finally {
       setLoading(false);
     }
   };
 
-  const suggestions = [
-    "Which hackathon should I register for right now?",
-    "What should I learn this week?",
-    "Am I ready for Razorpay?",
-    "Compare Groww vs Razorpay for my profile"
-  ];
+  const EXPERIENCES = ["Beginner", "Intermediate", "Advanced"];
+  const GOALS = ["Internship", "Job", "Hackathon", "Freelance"];
 
   return (
-    <div className="flex flex-col h-full">
-      {/* Messages */}
-      <div className="flex-1 overflow-auto p-4 space-y-4">
-        {chatHistory.length === 0 && (
-          <div className="text-center mt-16">
-            <div className="text-4xl mb-4">💬</div>
-            <h2 className="text-lg font-semibold text-gray-700 mb-2">Ask anything about your career</h2>
-            <p className="text-sm text-gray-400 mb-6">DevRadar answers from your personal career wiki</p>
-            <div className="flex flex-col gap-2 items-center">
+    <div className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden"
+         style={{ background: "var(--ctp-base)" }}>
+
+      {/* Floating background circles */}
+      {[
+        { size: 320, color: "var(--ctp-peach)", top: "10%", left: "5%", delay: "0s", dur: "12s" },
+        { size: 240, color: "var(--ctp-mauve)", top: "60%", left: "80%", delay: "2s", dur: "15s" },
+        { size: 180, color: "var(--ctp-blue)", top: "30%", right: "8%", delay: "4s", dur: "10s" },
+        { size: 280, color: "var(--ctp-teal)", bottom: "15%", left: "30%", delay: "1s", dur: "18s" },
+      ].map((c, i) => (
+        <div key={i} className="absolute rounded-full pointer-events-none"
+             style={{
+               width: c.size, height: c.size,
+               background: c.color, opacity: 0.05,
+               top: c.top, left: c.left, right: c.right, bottom: c.bottom,
+               animation: `float ${c.dur} ease-in-out ${c.delay} infinite`,
+               filter: "blur(40px)"
+             }} />
+      ))}
+
+      {/* Main card */}
+      <div className="animate-fade-up relative z-10 w-full max-w-md rounded-2xl p-10"
+           style={{
+             background: "var(--ctp-mantle)",
+             border: "1px solid var(--ctp-surface1)",
+             boxShadow: "0 4px 20px rgba(17,17,27,0.6), 0 0 40px rgba(203,166,247,0.05)"
+           }}>
+
+        {/* Logo */}
+        <div className="flex items-center gap-3 mb-1">
+          <div className="flex gap-1">
+            {["var(--ctp-peach)", "var(--ctp-blue)", "var(--ctp-mauve)"].map((c, i) => (
+              <div key={i} className="w-2.5 h-2.5 rounded-sm"
+                   style={{ background: c, opacity: 0.9 }} />
+            ))}
+          </div>
+          <span className="text-xl font-bold tracking-tight"
+                style={{ color: "var(--ctp-text)" }}>DevRadar</span>
+        </div>
+
+        <p className="text-sm mb-3" style={{ color: "var(--ctp-subtext0)" }}>
+          Your personal career knowledge base
+        </p>
+
+        <div className="inline-block text-xs px-2.5 py-1 rounded-full mb-6"
+             style={{
+               background: "rgba(203,166,247,0.12)",
+               border: "1px solid rgba(203,166,247,0.25)",
+               color: "var(--ctp-mauve)"
+             }}>
+          WikiThon 2025
+        </div>
+
+        {/* Divider */}
+        <div className="mb-6" style={{ borderTop: "1px solid var(--ctp-surface0)" }} />
+
+        {/* Description */}
+        <h2 className="text-lg font-semibold mb-2" style={{ color: "var(--ctp-text)" }}>
+          Build your career graph
+        </h2>
+        <p className="text-xs mb-4 leading-relaxed" style={{ color: "var(--ctp-subtext0)" }}>
+          Feed job descriptions, LinkedIn posts, or screenshots.
+          DevRadar extracts insights and builds a personal knowledge graph
+          powered by HydraDB memory.
+        </p>
+
+        {/* Feature pills */}
+        <div className="flex gap-2 mb-6 flex-wrap">
+          {[
+            { label: "🗺  Career Graph", color: "var(--ctp-blue)", bg: "rgba(137,180,250,0.1)", border: "rgba(137,180,250,0.25)" },
+            { label: "💬  Ask Anything", color: "var(--ctp-green)", bg: "rgba(166,227,161,0.1)", border: "rgba(166,227,161,0.25)" },
+            { label: "📍  Roadmap", color: "var(--ctp-peach)", bg: "rgba(250,179,135,0.1)", border: "rgba(250,179,135,0.25)" },
+          ].map(p => (
+            <span key={p.label} className="text-xs px-3 py-1.5 rounded-full"
+                  style={{ color: p.color, background: p.bg, border: `1px solid ${p.border}` }}>
+              {p.label}
+            </span>
+          ))}
+        </div>
+
+        {/* Divider */}
+        <div className="mb-5" style={{ borderTop: "1px solid var(--ctp-surface0)" }} />
+
+        {/* Stack input */}
+        <label className="block text-xs font-medium mb-2"
+               style={{ color: "var(--ctp-subtext1)" }}>
+          What's your current tech stack?
+        </label>
+
+        <div className="relative">
+          <div className="flex flex-wrap gap-1.5 p-2 rounded-xl min-h-16 cursor-text"
+               style={{
+                 background: "var(--ctp-surface0)",
+                 border: `1px solid ${skills.length > 0 ? "var(--ctp-mauve)" : "var(--ctp-surface1)"}`,
+                 transition: "border-color 150ms"
+               }}
+               onClick={() => inputRef.current?.focus()}>
+            {skills.map(skill => (
+              <span key={skill} className="flex items-center gap-1 text-xs px-2.5 py-1 rounded-full"
+                    style={{
+                      background: "rgba(203,166,247,0.18)",
+                      border: "1px solid rgba(203,166,247,0.35)",
+                      color: "var(--ctp-mauve)"
+                    }}>
+                {skill}
+                <button onClick={() => removeSkill(skill)}
+                        className="ml-0.5 hover:opacity-70 leading-none"
+                        style={{ color: "var(--ctp-overlay1)" }}>×</button>
+              </span>
+            ))}
+            <input ref={inputRef} value={input}
+                   onChange={e => handleInput(e.target.value)}
+                   onKeyDown={handleKeyDown}
+                   placeholder={skills.length === 0 ? "Type a skill and press Enter..." : ""}
+                   className="flex-1 min-w-24 bg-transparent border-none outline-none text-xs"
+                   style={{ color: "var(--ctp-text)" }} />
+          </div>
+
+          {/* Autocomplete dropdown */}
+          {suggestions.length > 0 && (
+            <div className="absolute top-full left-0 right-0 mt-1 rounded-xl overflow-hidden z-20"
+                 style={{
+                   background: "var(--ctp-surface0)",
+                   border: "1px solid var(--ctp-surface1)",
+                   boxShadow: "0 4px 20px rgba(17,17,27,0.6)"
+                 }}>
               {suggestions.map(s => (
-                <button
-                  key={s}
-                  onClick={() => setInput(s)}
-                  className="text-sm text-blue-500 border border-blue-200 rounded-lg px-4 py-2 hover:bg-blue-50 transition-colors"
-                >
+                <button key={s} onClick={() => addSkill(s)}
+                        className="w-full text-left text-xs px-3 py-2.5 hover:opacity-80 transition-opacity"
+                        style={{ color: "var(--ctp-text)", background: "transparent" }}>
                   {s}
                 </button>
               ))}
             </div>
-          </div>
-        )}
-        {chatHistory.map((msg, i) => (
-          <div key={i} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
-            <div className={`max-w-2xl ${msg.role === "user"
-              ? "bg-blue-500 text-white rounded-2xl rounded-br-sm px-4 py-3"
-              : "bg-white border border-gray-100 shadow-sm rounded-2xl rounded-bl-sm px-4 py-3"
-            }`}>
-              <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
-              {msg.citations?.length > 0 && (
-                <div className="mt-3 pt-3 border-t border-gray-100">
-                  <p className="text-xs text-gray-400 mb-1">Sources from your career wiki:</p>
-                  <div className="flex flex-wrap gap-1">
-                    {msg.citations.filter(c => msg.content.includes(`[${c.index}]`)).map(c => (
-                      <span key={c.index} className="text-xs bg-gray-50 border border-gray-200 rounded px-2 py-0.5">
-                        [{c.index}] {c.key}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-        ))}
-        {loading && (
-          <div className="flex justify-start">
-            <div className="bg-white border border-gray-100 shadow-sm rounded-2xl px-4 py-3">
-              <div className="flex gap-1">
-                <div className="w-2 h-2 bg-gray-300 rounded-full animate-bounce" />
-                <div className="w-2 h-2 bg-gray-300 rounded-full animate-bounce" style={{ animationDelay: "0.1s" }} />
-                <div className="w-2 h-2 bg-gray-300 rounded-full animate-bounce" style={{ animationDelay: "0.2s" }} />
-              </div>
-            </div>
-          </div>
-        )}
-        <div ref={bottomRef} />
-      </div>
-
-      {/* Input */}
-      <div className="border-t border-gray-100 p-4">
-        <div className="flex gap-2">
-          <input
-            value={input}
-            onChange={e => setInput(e.target.value)}
-            onKeyDown={e => e.key === "Enter" && !e.shiftKey && sendMessage()}
-            placeholder="Ask about your career, companies, skills..."
-            className="flex-1 border border-gray-200 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-blue-400"
-          />
-          <button
-            onClick={sendMessage}
-            disabled={loading || !input.trim()}
-            className="bg-blue-500 hover:bg-blue-600 disabled:bg-blue-300 text-white px-4 py-2.5 rounded-lg text-sm font-medium transition-colors"
-          >
-            Send
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
----
-
-STEP 10 — CREATE frontend/src/components/RoadmapView.jsx
-
-import { useState, useEffect } from "react";
-import axios from "axios";
-
-const API = import.meta.env.VITE_API_URL || "http://localhost:3001";
-
-export default function RoadmapView({ userId, roadmap, setRoadmap }) {
-  const [loading, setLoading] = useState(false);
-
-  const fetchRoadmap = async () => {
-    if (roadmap) return;
-    setLoading(true);
-    try {
-      const res = await axios.get(`${API}/api/roadmap/${userId}`);
-      setRoadmap(res.data);
-    } catch (e) { console.error(e); }
-    finally { setLoading(false); }
-  };
-
-  useEffect(() => { fetchRoadmap(); }, [userId]);
-
-  const RESOURCE_ICONS = { docs: "📖", video: "🎥", practice: "🛠", blog: "📝" };
-
-  if (loading) return (
-    <div className="flex-1 flex items-center justify-center text-gray-400">
-      <p>Generating your personalized roadmap...</p>
-    </div>
-  );
-
-  if (!roadmap) return (
-    <div className="flex-1 flex items-center justify-center">
-      <div className="text-center">
-        <div className="text-4xl mb-4">🗺</div>
-        <p className="text-gray-500">Feed career data first to generate your roadmap</p>
-        <button onClick={fetchRoadmap} className="mt-4 text-sm text-blue-500 hover:underline">
-          Generate Roadmap
-        </button>
-      </div>
-    </div>
-  );
-
-  return (
-    <div className="flex-1 overflow-auto p-6 max-w-3xl mx-auto">
-      <h1 className="text-2xl font-bold text-gray-900 mb-1">Your Career Roadmap</h1>
-      <p className="text-sm text-gray-400 mb-2">
-        Powered by Claude AI · Based on your career wiki
-      </p>
-      <p className="text-sm text-gray-500 mb-6">Total timeline: ~{roadmap.overall_timeline_weeks} weeks</p>
-
-      {/* Immediate hackathons */}
-      {roadmap.immediate_hackathons?.length > 0 && (
-        <div className="bg-orange-50 border border-orange-200 rounded-xl p-4 mb-6">
-          <h2 className="text-sm font-semibold text-orange-800 mb-3">Register Now — Current Stack Match</h2>
-          <div className="space-y-2">
-            {roadmap.immediate_hackathons.map((h, i) => (
-              <div key={i} className="flex items-center justify-between">
-                <div>
-                  <span className="font-medium text-orange-900 text-sm">{h.name}</span>
-                  <span className="text-orange-600 text-xs ml-2">Deadline: {h.deadline}</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-xs bg-orange-100 text-orange-700 px-2 py-0.5 rounded">{h.match}% match</span>
-                  {h.register_url && (
-                    <a href={h.register_url} target="_blank" rel="noopener noreferrer"
-                       className="text-xs text-blue-500 hover:underline">Register →</a>
-                  )}
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Weekly plan */}
-      <div className="space-y-6">
-        {roadmap.weeks?.map((week, i) => (
-          <div key={i} className="border border-gray-100 rounded-xl overflow-hidden">
-            <div className="bg-gray-50 px-4 py-3 flex items-center justify-between">
-              <div>
-                <span className="font-semibold text-gray-800">{week.week_range}</span>
-                <span className="ml-2 text-sm text-gray-500">— {week.focus_skill}</span>
-              </div>
-              <span className="text-xs text-gray-400">{week.daily_time_hours}h/day</span>
-            </div>
-            <div className="p-4">
-              <p className="text-xs text-gray-500 mb-3">{week.why}</p>
-              <div className="space-y-2 mb-3">
-                {week.resources?.map((r, j) => (
-                  <div key={j} className="flex items-start gap-2">
-                    <span>{RESOURCE_ICONS[r.type] || "📌"}</span>
-                    <div>
-                      {r.url ? (
-                        <a href={r.url} target="_blank" rel="noopener noreferrer"
-                           className="text-sm text-blue-500 hover:underline">{r.title}</a>
-                      ) : (
-                        <span className="text-sm text-gray-700">{r.title}</span>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
-              {week.hackathon_to_target && (
-                <div className="bg-purple-50 rounded-lg px-3 py-2 text-xs text-purple-700">
-                  🏆 {week.hackathon_to_target}
-                </div>
-              )}
-              {week.milestone && (
-                <div className="mt-2 text-xs text-gray-400 border-t pt-2">
-                  Milestone: {week.milestone}
-                </div>
-              )}
-            </div>
-          </div>
-        ))}
-      </div>
-
-      {/* Company readiness */}
-      {roadmap.company_readiness?.length > 0 && (
-        <div className="mt-6 border border-gray-100 rounded-xl p-4">
-          <h2 className="font-semibold text-gray-800 mb-3">Company Readiness</h2>
-          <div className="space-y-2">
-            {roadmap.company_readiness.map((c, i) => (
-              <div key={i} className="flex justify-between text-sm">
-                <span className="text-gray-700">{c.company}</span>
-                <span className="text-gray-400">{c.ready_in} — after {c.after_skill}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      <button
-        onClick={() => { setRoadmap(null); fetchRoadmap(); }}
-        className="mt-4 text-xs text-gray-400 hover:text-gray-600"
-      >
-        Regenerate roadmap
-      </button>
-    </div>
-  );
-}
-
----
-
-STEP 11 — CREATE frontend/src/components/Sidebar.jsx
-
-import { useState } from "react";
-
-const VIEW_ITEMS = [
-  { id: "graph",   label: "Career Graph",  icon: "🗺" },
-  { id: "ingest",  label: "Feed Data",     icon: "➕" },
-  { id: "chat",    label: "Ask Anything",  icon: "💬" },
-  { id: "roadmap", label: "Roadmap",       icon: "📍" },
-  { id: "journey", label: "My Journey",    icon: "⏱" }
-];
-
-export default function Sidebar({ wikiPages, currentView, setCurrentView, onEntityClick }) {
-  const [expandedSections, setExpandedSections] = useState({
-    companies: true, skills: true, hackathons: false, gaps: false
-  });
-
-  const companies = wikiPages.filter(p => p.key?.startsWith("companies/"));
-  const skills = wikiPages.filter(p => p.key?.startsWith("skills/"));
-  const hackathons = wikiPages.filter(p => p.key?.startsWith("hackathons/"));
-  const gaps = wikiPages.filter(p => p.key?.startsWith("gaps/"));
-
-  const toggle = (section) => setExpandedSections(prev => ({...prev, [section]: !prev[section]}));
-
-  return (
-    <div className="w-60 bg-white border-r border-gray-100 flex flex-col h-screen flex-shrink-0">
-      {/* Logo */}
-      <div className="px-4 py-4 border-b border-gray-100">
-        <div className="font-bold text-gray-900 text-base">DevRadar</div>
-        <div className="text-xs text-blue-500 mt-0.5">WikiThon 2025</div>
-      </div>
-
-      {/* Nav items */}
-      <div className="px-2 py-2 border-b border-gray-100">
-        {VIEW_ITEMS.map(item => (
-          <button
-            key={item.id}
-            onClick={() => setCurrentView(item.id)}
-            className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-md text-sm text-left transition-colors mb-0.5 ${
-              currentView === item.id
-                ? "bg-blue-50 text-blue-600 font-medium"
-                : "text-gray-600 hover:bg-gray-50"
-            }`}
-          >
-            <span>{item.icon}</span>
-            <span>{item.label}</span>
-          </button>
-        ))}
-      </div>
-
-      {/* Wiki entities */}
-      <div className="flex-1 overflow-auto px-2 py-2">
-        <div className="text-xs font-medium text-gray-400 uppercase tracking-wider px-3 mb-2">
-          Career Wiki
+          )}
         </div>
 
-        {[
-          { key: "companies", label: "Companies", items: companies, color: "text-orange-500" },
-          { key: "skills", label: "Skills", items: skills, color: "text-blue-500" },
-          { key: "hackathons", label: "Hackathons", items: hackathons, color: "text-purple-500" },
-          { key: "gaps", label: "Gaps", items: gaps, color: "text-red-500" }
-        ].map(section => (
-          <div key={section.key} className="mb-1">
-            <button
-              onClick={() => toggle(section.key)}
-              className="w-full flex items-center justify-between px-3 py-1.5 text-xs text-gray-500 hover:bg-gray-50 rounded-md"
-            >
-              <span>{expandedSections[section.key] ? "▾" : "▸"} {section.label}</span>
-              {section.items.length > 0 && (
-                <span className="bg-gray-100 text-gray-500 rounded px-1.5 text-xs">
-                  {section.items.length}
-                </span>
-              )}
-            </button>
-            {expandedSections[section.key] && section.items.map(page => (
-              <button
-                key={page.key}
-                onClick={() => { onEntityClick(page.key); setCurrentView("graph"); }}
-                className="w-full text-left px-6 py-1 text-xs text-gray-600 hover:bg-gray-50 rounded-md truncate"
-              >
-                {page.key.split("/")[1]?.replace(/-/g, " ")}
+        {/* Experience */}
+        <div className="mt-4">
+          <label className="text-xs mb-2 block" style={{ color: "var(--ctp-overlay1)" }}>
+            Experience level
+          </label>
+          <div className="flex gap-2">
+            {EXPERIENCES.map(e => (
+              <button key={e} onClick={() => setExperience(e.toLowerCase())}
+                      className="flex-1 text-xs py-1.5 rounded-lg transition-all"
+                      style={{
+                        background: experience === e.toLowerCase()
+                          ? "rgba(203,166,247,0.15)" : "transparent",
+                        border: `1px solid ${experience === e.toLowerCase()
+                          ? "var(--ctp-mauve)" : "var(--ctp-surface2)"}`,
+                        color: experience === e.toLowerCase()
+                          ? "var(--ctp-mauve)" : "var(--ctp-subtext0)"
+                      }}>
+                {e}
               </button>
             ))}
-            {expandedSections[section.key] && section.items.length === 0 && (
-              <div className="px-6 py-1 text-xs text-gray-300 italic">
-                Feed data to populate
-              </div>
-            )}
           </div>
-        ))}
-      </div>
-
-      {/* Bottom status */}
-      <div className="px-4 py-3 border-t border-gray-100">
-        <div className="text-xs text-gray-400">
-          {wikiPages.length} wiki pages
         </div>
-        <div className="flex items-center gap-1.5 mt-1">
-          <div className="w-1.5 h-1.5 bg-green-400 rounded-full animate-pulse" />
-          <span className="text-xs text-green-600">HydraDB active</span>
-        </div>
-      </div>
-    </div>
-  );
-}
 
----
-
-STEP 12 — CREATE frontend/src/components/DetailPanel.jsx
-
-import { useState } from "react";
-import axios from "axios";
-
-const API = import.meta.env.VITE_API_URL || "http://localhost:3001";
-
-export default function DetailPanel({ nodeId, wikiPages, userId, onClose }) {
-  if (!nodeId) return null;
-
-  const page = wikiPages.find(p => p.key === nodeId);
-  const parts = nodeId.split("/");
-  const type = parts[0];
-  const name = parts[1]?.replace(/-/g, " ") || nodeId;
-
-  const typeColors = {
-    companies: "bg-orange-50 text-orange-700 border-orange-200",
-    skills: "bg-blue-50 text-blue-700 border-blue-200",
-    gaps: "bg-red-50 text-red-700 border-red-200",
-    hackathons: "bg-purple-50 text-purple-700 border-purple-200",
-    user: "bg-amber-50 text-amber-700 border-amber-200"
-  };
-
-  return (
-    <div className="w-80 bg-white border-l border-gray-100 shadow-lg flex flex-col h-screen flex-shrink-0">
-      {/* Header */}
-      <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
-        <div className="flex items-center gap-2">
-          <span className={`text-xs font-medium px-2 py-0.5 rounded border capitalize ${typeColors[type] || typeColors.skills}`}>
-            {type}
-          </span>
-          <span className="text-sm font-semibold text-gray-900 capitalize">{name}</span>
-        </div>
-        <button onClick={onClose} className="text-gray-400 hover:text-gray-600 text-lg leading-none">×</button>
-      </div>
-
-      {/* Content */}
-      <div className="flex-1 overflow-auto p-4">
-        {page ? (
-          <div>
-            <div className="text-xs text-gray-400 mb-3">From your career wiki · {page.updated_at?.split("T")[0]}</div>
-            <div className="prose prose-sm max-w-none">
-              <pre className="whitespace-pre-wrap text-xs text-gray-600 font-sans leading-relaxed">
-                {page.content?.replace(/---[\s\S]*?---/, "").trim()}
-              </pre>
-            </div>
-          </div>
-        ) : (
-          <div className="text-center mt-8 text-gray-400">
-            <div className="text-3xl mb-2">{nodeId === "user_center" ? "👤" : "📄"}</div>
-            {nodeId === "user_center" ? (
-              <p className="text-sm">This is you — the center of your career graph.</p>
-            ) : (
-              <p className="text-sm">No wiki page yet for this node.<br/>Feed data containing "{name}" to generate one.</p>
-            )}
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}
-
----
-
-STEP 13 — CREATE frontend/src/components/JourneyView.jsx
-
-export default function JourneyView({ userId, wikiPages }) {
-  const events = wikiPages
-    .filter(p => p.updated_at)
-    .sort((a, b) => new Date(b.updated_at) - new Date(a.updated_at))
-    .map(p => ({
-      key: p.key,
-      label: p.key.replace(/\//g, " › ").replace(/-/g, " "),
-      time: new Date(p.updated_at).toLocaleString(),
-      type: p.key.split("/")[0]
-    }));
-
-  const dotColors = {
-    companies: "bg-orange-400",
-    skills: "bg-blue-400",
-    gaps: "bg-red-400",
-    hackathons: "bg-purple-400",
-    overview: "bg-gray-400",
-    index: "bg-gray-300",
-    log: "bg-gray-300"
-  };
-
-  return (
-    <div className="flex-1 overflow-auto p-6 max-w-2xl mx-auto">
-      <h1 className="text-2xl font-bold text-gray-900 mb-1">My Journey</h1>
-      <p className="text-sm text-gray-400 mb-6">Everything DevRadar has learned about your career</p>
-
-      <div className="grid grid-cols-2 gap-3 mb-6">
-        {[
-          { label: "Wiki Pages", value: wikiPages.length },
-          { label: "Companies", value: wikiPages.filter(p => p.key?.startsWith("companies/")).length },
-          { label: "Skills Tracked", value: wikiPages.filter(p => p.key?.startsWith("skills/")).length },
-          { label: "Gaps Found", value: wikiPages.filter(p => p.key?.startsWith("gaps/")).length }
-        ].map(stat => (
-          <div key={stat.label} className="bg-gray-50 rounded-xl p-3 border border-gray-100">
-            <div className="text-2xl font-bold text-gray-800">{stat.value}</div>
-            <div className="text-xs text-gray-400">{stat.label}</div>
-          </div>
-        ))}
-      </div>
-
-      {events.length === 0 ? (
-        <div className="text-center py-16 text-gray-400">
-          <p>No journey data yet.</p>
-          <p className="text-sm mt-1">Feed career data to build your timeline.</p>
-        </div>
-      ) : (
-        <div className="relative">
-          <div className="absolute left-3 top-0 bottom-0 w-0.5 bg-gray-100" />
-          <div className="space-y-4">
-            {events.map((event, i) => (
-              <div key={i} className="flex gap-4 relative">
-                <div className={`w-2.5 h-2.5 rounded-full mt-1.5 flex-shrink-0 z-10 ${dotColors[event.type] || "bg-gray-300"}`} />
-                <div>
-                  <div className="text-sm text-gray-700 capitalize font-medium">{event.label}</div>
-                  <div className="text-xs text-gray-400">{event.time}</div>
-                </div>
-              </div>
+        {/* Goals */}
+        <div className="mt-3">
+          <label className="text-xs mb-2 block" style={{ color: "var(--ctp-overlay1)" }}>
+            Looking for
+          </label>
+          <div className="flex gap-2 flex-wrap">
+            {GOALS.map(g => (
+              <button key={g} onClick={() => toggleGoal(g.toLowerCase())}
+                      className="text-xs px-3 py-1.5 rounded-lg transition-all"
+                      style={{
+                        background: goals.includes(g.toLowerCase())
+                          ? "rgba(203,166,247,0.15)" : "transparent",
+                        border: `1px solid ${goals.includes(g.toLowerCase())
+                          ? "var(--ctp-mauve)" : "var(--ctp-surface2)"}`,
+                        color: goals.includes(g.toLowerCase())
+                          ? "var(--ctp-mauve)" : "var(--ctp-subtext0)"
+                      }}>
+                {g}
+              </button>
             ))}
           </div>
         </div>
-      )}
-    </div>
-  );
-}
 
----
+        {/* CTA */}
+        <button onClick={handleSubmit}
+                disabled={skills.length === 0 || loading}
+                className="w-full mt-6 py-3 rounded-xl text-sm font-semibold transition-all"
+                style={{
+                  background: skills.length === 0 ? "var(--ctp-surface1)" : "var(--ctp-mauve)",
+                  color: skills.length === 0 ? "var(--ctp-overlay0)" : "var(--ctp-base)",
+                  cursor: skills.length === 0 ? "not-allowed" : "pointer",
+                  opacity: loading ? 0.7 : 1,
+                  letterSpacing: "-0.2px"
+                }}>
+          {loading ? "Building your graph..." : "Start → Build Career Graph"}
+        </button>
 
-STEP 14 — CREATE frontend/src/components/Topbar.jsx
-
-export default function Topbar({ currentView, userId, userStack }) {
-  const VIEW_TITLES = {
-    graph: "Career Graph",
-    ingest: "Feed Career Data",
-    chat: "Ask Anything",
-    roadmap: "Your Roadmap",
-    journey: "My Journey"
-  };
-
-  return (
-    <div className="h-12 bg-white border-b border-gray-100 flex items-center justify-between px-4 flex-shrink-0">
-      <span className="font-semibold text-gray-800 text-sm">{VIEW_TITLES[currentView] || currentView}</span>
-      <div className="flex gap-1.5 items-center">
-        {(userStack || []).slice(0, 4).map(skill => (
-          <span key={skill} className="text-xs bg-blue-50 text-blue-600 border border-blue-100 px-2 py-0.5 rounded-full">
-            {skill}
-          </span>
-        ))}
-        {(userStack || []).length > 4 && (
-          <span className="text-xs text-gray-400">+{userStack.length - 4}</span>
-        )}
+        <p className="text-center mt-3 text-xs" style={{ color: "var(--ctp-overlay0)" }}>
+          Powered by HydraDB · Claude AI · WikiThon 2025
+        </p>
       </div>
     </div>
   );
@@ -1664,56 +1014,112 @@ export default function Topbar({ currentView, userId, userStack }) {
 
 ---
 
-STEP 15 — UPDATE StackInput.jsx FOR LIGHT THEME
+RETURNING USER SCREEN
 
-Keep all existing logic. Only update colors:
-  bg-gray-900 → bg-white or bg-gray-50
-  text-white → text-gray-900
-  border-gray-700 → border-gray-200
-  bg-teal-500 → bg-blue-500
-  Dark pills → Light pills with border
+If userId exists in localStorage, show a different opening:
+
+Create frontend/src/components/ReturningScreen.jsx:
+
+export default function ReturningScreen({ returnContext, onContinue }) {
+  return (
+    <div className="min-h-screen flex items-center justify-center p-4"
+         style={{ background: "var(--ctp-base)" }}>
+
+      {/* Same floating circles as OpeningScreen */}
+
+      <div className="animate-fade-up relative z-10 w-full max-w-sm rounded-2xl p-8 text-center"
+           style={{
+             background: "var(--ctp-mantle)",
+             border: "1px solid var(--ctp-surface1)",
+             boxShadow: "0 4px 20px rgba(17,17,27,0.6)"
+           }}>
+
+        <div className="text-3xl mb-4">🧠</div>
+
+        <h2 className="text-lg font-semibold mb-2"
+            style={{ color: "var(--ctp-text)" }}>
+          Welcome back
+        </h2>
+
+        <p className="text-sm mb-4 leading-relaxed"
+           style={{ color: "var(--ctp-subtext0)" }}>
+          {returnContext?.message || "HydraDB remembers your career journey."}
+        </p>
+
+        {returnContext?.urgentItems?.length > 0 && (
+          <div className="flex flex-wrap gap-2 justify-center mb-4">
+            {returnContext.urgentItems.map((item, i) => (
+              <span key={i} className="text-xs px-3 py-1 rounded-full"
+                    style={{
+                      background: item.daysLeft < 3
+                        ? "rgba(243,139,168,0.15)" : "rgba(250,179,135,0.15)",
+                      border: `1px solid ${item.daysLeft < 3
+                        ? "rgba(243,139,168,0.3)" : "rgba(250,179,135,0.3)"}`,
+                      color: item.daysLeft < 3
+                        ? "var(--ctp-red)" : "var(--ctp-peach)"
+                    }}>
+                {item.name} · {item.daysLeft}d left
+              </span>
+            ))}
+          </div>
+        )}
+
+        <button onClick={onContinue}
+                className="w-full py-3 rounded-xl text-sm font-semibold"
+                style={{ background: "var(--ctp-mauve)", color: "var(--ctp-base)" }}>
+          Continue →
+        </button>
+
+        <div className="mt-3 flex items-center justify-center gap-1.5">
+          <div className="w-1.5 h-1.5 rounded-full animate-pulse-dot"
+               style={{ background: "var(--ctp-green)" }} />
+          <span className="text-xs" style={{ color: "var(--ctp-overlay0)" }}>
+            HydraDB memory loaded
+          </span>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 ---
 
-STEP 16 — UPDATE MemoryBadge.jsx FOR LIGHT THEME
+APP.JSX FLOW UPDATE
 
-Keep all existing logic. Only update colors:
-  bg-dark-teal → bg-amber-50
-  border-teal → border-amber-200
-  text-white → text-amber-900
-  Urgent pills: bg-amber-100 text-amber-700
+On app load:
+  Check localStorage for userId
+  If found: fetch returnContext → show ReturningScreen
+  If not: show OpeningScreen
+  After either: show main three-zone layout
+
+const existingUserId = localStorage.getItem("devradar_userId");
+
+if (!userId) {
+  if (existingUserId) {
+    // Fetch return context then show ReturningScreen
+    return <ReturningScreen returnContext={returnContext} onContinue={...} />;
+  } else {
+    return <OpeningScreen onComplete={...} />;
+  }
+}
+// else show main layout
 
 ---
 
-FINAL CHECKS
+GIT COMMITS FOR THIS WORK
 
-1. All existing endpoints still return the same responses
-2. Seed demo still works: node backend/seed-demo.js
-3. Frontend builds: cd frontend && npm run build
-4. No console errors in browser
-5. Graph loads when userId exists
-6. IngestPanel shows activity log during processing
-7. Chat returns answers with citations
-8. Roadmap generates after feeding some data
-
----
-
-GIT COMMIT PATTERN
-
-After each step commit with lowercase message:
-  "add fetcher.js for url and screenshot processing"
-  "extend hydradb with wiki page storage functions"
-  "add ingest endpoints to server"
-  "add career graph with sigma.js"
-  "add ingest panel three tab ui"
-  "add chat interface with citations"
-  "add roadmap view with resources"
-  "add sidebar with wiki entity navigation"
-  "add detail panel for node click"
-  "add journey view timeline"
-  "update stack input to light theme"
-  "update memory badge to light theme"
-  "connect all views in app jsx"
-  "fix mobile layout"
-  "ship it"
+"add catppuccin mocha css variables to index.css"
+"restyle sidebar with catppuccin colors"
+"restyle topbar with catppuccin"
+"apply catppuccin to detail panel"
+"apply catppuccin to ingest panel"
+"apply catppuccin to chat interface"
+"apply catppuccin to roadmap view"
+"apply catppuccin to journey view"
+"apply catppuccin to memory badge"
+"create opening screen with floating nodes animation"
+"create returning user screen"
+"wire opening and returning screens in app jsx"
+"fix graph tooltip catppuccin override"
+"final catppuccin polish pass"
 ```
