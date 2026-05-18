@@ -1,627 +1,505 @@
-Fix the core UX problem in DevRadar:
+# DevRadar — Necto Mono Theme · Full Implementation Prompt
 
-PROBLEM:
-App shows career graph and startups without knowing who the user is.
-User never told the app their stack, goals, or what they want.
-seed-demo.js pre-fills fake data — judges will notice this is fake.
-
-SOLUTION:
-Multi-step onboarding wizard that runs ONCE on first visit.
-User tells the app everything. App stores in HydraDB. Then shows graph.
-On return visit: HydraDB remembers — skip onboarding, go straight to graph.
+> Copy-paste this entire document into Claude (or your AI of choice) and say:
+> **"Implement this theme system across my DevRadar React + Tailwind codebase."**
+> It covers every file you need to touch — config, globals, and all 6 components.
 
 ---
 
-STEP 1 — FIX App.jsx LOGIC
+## CONTEXT — what this codebase is
 
-Current broken flow:
-  App loads → shows graph (with fake seed data)
+- **Framework:** React 18 + Vite
+- **Styling:** Tailwind CSS (utility-first)
+- **Components to retheme:**
+  - `src/App.jsx` — root, nav bar, layout shell
+  - `src/components/StackInput.jsx` — skill chip selector + name input
+  - `src/components/Dashboard.jsx` — tab shell + stat cards
+  - `src/components/StartupCard.jsx` — startup match card with score bar
+  - `src/components/HackathonCard.jsx` — hackathon listing with deadline badge
+  - `src/components/GapAnalysis.jsx` — Claude AI panel + skills chart
+  - `src/components/MemoryBadge.jsx` — HydraDB session indicator in nav
+- **Font:** monospace everywhere — use `'JetBrains Mono', 'Courier New', monospace`
+- **Theme name:** Necto Mono (dark, monospace, lime accent)
 
-Correct flow:
-  App loads
-    ↓
-  Check localStorage for "devradar_userId"
-    ↓ found               ↓ not found
-  Fetch return context   Show OnboardingWizard
-    ↓
-  Show ReturningScreen
-    ↓
-  User clicks Continue
-    ↓
-  Show main graph
+---
 
-Update App.jsx:
+## STEP 1 — Install the font
 
-const [appState, setAppState] = useState("checking")
-// States: checking | onboarding | returning | app
+Add to `index.html` inside `<head>`:
 
-useEffect(() => {
-  const existingId = localStorage.getItem("devradar_userId")
-  if (!existingId) {
-    setAppState("onboarding")
-    return
-  }
-  // Has userId — fetch return context
-  axios.get(`${API}/api/return-context/${existingId}`)
-    .then(res => {
-      setUserId(existingId)
-      setReturnContext(res.data)
-      setAppState(res.data.hasHistory ? "returning" : "app")
-    })
-    .catch(() => {
-      // If fetch fails — still go to app
-      setUserId(existingId)
-      setAppState("app")
-    })
-}, [])
+```html
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+```
 
-// Render based on state:
-if (appState === "checking") return <LoadingScreen />
-if (appState === "onboarding") return <OnboardingWizard onComplete={handleOnboardComplete} />
-if (appState === "returning") return <ReturningScreen returnContext={returnContext} onContinue={() => setAppState("app")} />
-if (appState === "app") return <MainAppLayout ... />
+---
 
-function handleOnboardComplete(userData) {
-  setUserId(userData.userId)
-  setUserStack(userData.stack)
-  localStorage.setItem("devradar_userId", userData.userId)
-  setAppState("app")
+## STEP 2 — `tailwind.config.js`
+
+Replace the entire config with this:
+
+```js
+/** @type {import('tailwindcss').Config} */
+export default {
+  content: ['./index.html', './src/**/*.{js,jsx,ts,tsx}'],
+  theme: {
+    extend: {
+      fontFamily: {
+        mono: ['"JetBrains Mono"', '"Courier New"', 'monospace'],
+      },
+      colors: {
+        // ── Necto Mono palette ──────────────────────
+        bg:      '#0f0f0f',   // page canvas
+        s1:      '#1c1c1c',   // card surface
+        s2:      '#252525',   // raised / input bg
+        s3:      '#2e2e2e',   // progress track, dividers
+        // Text
+        'txt':   '#f0f0ee',   // primary text
+        'muted': '#888880',   // secondary text, labels
+        'dim':   '#555550',   // placeholders, disabled
+        // Accent
+        lime:    '#d4f53c',   // primary accent — CTAs, top scores, active chips
+        'lime-bg':   '#1a2200',  // lime tinted background
+        'lime-dim':  '#8aaa18',  // lime text on lime-bg
+        // Semantic
+        warn:    '#ea9d34',   // mid scores, deadlines
+        'warn-bg':   '#2a1500',
+        err:     '#e08080',   // low scores, critical gaps
+        'err-bg':    '#2a0808',
+        // Borders
+        'bd':    'rgba(255,255,255,0.07)',
+        'bd2':   'rgba(255,255,255,0.12)',
+      },
+      borderRadius: {
+        card: '16px',
+        pill: '999px',
+        btn:  '30px',
+      },
+      fontSize: {
+        'label': ['10px', { letterSpacing: '0.1em', textTransform: 'uppercase' }],
+      },
+    },
+  },
+  plugins: [],
+}
+```
+
+---
+
+## STEP 3 — `src/index.css`
+
+Replace entirely:
+
+```css
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ── Global resets ───────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; }
+
+html, body, #root {
+  background-color: #0f0f0f;
+  color: #f0f0ee;
+  font-family: 'JetBrains Mono', 'Courier New', monospace;
+  min-height: 100vh;
 }
 
----
+/* ── Scrollbar ───────────────────────────────── */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: #1c1c1c; }
+::-webkit-scrollbar-thumb { background: #2e2e2e; border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: #3a3a3a; }
 
-STEP 2 — CREATE frontend/src/components/OnboardingWizard.jsx
+/* ── Input reset ─────────────────────────────── */
+input, button, select, textarea {
+  font-family: inherit;
+  outline: none;
+}
 
-Four-step wizard. User goes through all four before seeing the app.
-Progress bar at top shows which step they are on.
-Cannot skip. Each step validates before Next.
+input:focus {
+  border-color: #d4f53c !important;
+}
 
-Props: onComplete(userData)
+input::placeholder {
+  color: #555550;
+}
 
-STATE:
-  const [step, setStep] = useState(1)          // 1, 2, 3, 4
-  const [knowWell, setKnowWell] = useState([]) // skills user knows
-  const [learning, setLearning] = useState([]) // skills user is learning
-  const [experience, setExperience] = useState(null)
-  const [targetRole, setTargetRole] = useState("")
-  const [lookingFor, setLookingFor] = useState([]) // internship, job, hackathon
-  const [targetCompanies, setTargetCompanies] = useState([])
-  const [timeline, setTimeline] = useState(null)
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState("")
+/* ── Transition defaults ─────────────────────── */
+.card-hover {
+  transition: border-color 0.15s ease;
+}
+.card-hover:hover {
+  border-color: rgba(255,255,255,0.18) !important;
+}
 
-LAYOUT:
-  Full screen, bg: var(--bg-base)
-  Center card: max-width 540px, bg: var(--bg-mantle)
-  
-  TOP of card:
-    DevRadar wordmark left
-    Step indicator right: "Step 2 of 4"
-    Progress bar below: fills 25% per step
-    Color: var(--accent)
+/* ── Score bar animation ─────────────────────── */
+.bar-fill {
+  transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
 
-  BOTTOM of card:
-    Back button (left) — only on steps 2,3,4
-    Next/Finish button (right) — disabled until step is valid
-
----
-
-STEP 2a — STEP 1: Who are you?
-
-Title: "Let's start with you"
-Subtitle: "This helps DevRadar personalize everything"
-
-Fields:
-
-  Name (optional):
-    Label: "What should we call you?"
-    Input: text, placeholder "Arjun, Priya, your name..."
-    Not required — can skip
-
-  Experience level (REQUIRED):
-    Label: "Where are you right now?"
-    Four options as cards (not buttons):
-    
-    [ 🎓 Student ]
-      "Currently in college, learning to code"
-    
-    [ 🌱 Fresher ]  
-      "Just graduated, looking for first job"
-    
-    [ 💼 Working ]
-      "1-3 years experience, want to grow"
-    
-    [ 🚀 Switching ]
-      "Coming from another domain"
-    
-    Card style:
-      width: 100%, padding: 12px 16px
-      background: var(--bg-surface0)
-      border: 2px solid var(--border)
-      border-radius: 10px
-      text-align: left
-      emoji large left, text right
-      
-      Active selected card:
-        border-color: var(--border-active)
-        background: var(--accent-bg)
-        Emoji and title in var(--accent)
-
-  VALIDATION: Experience must be selected to proceed.
+/* ── Chip transition ─────────────────────────── */
+.chip-toggle {
+  transition: all 0.15s ease;
+}
+```
 
 ---
 
-STEP 2b — STEP 2: Your current skills
+## STEP 4 — Design tokens (quick reference card)
 
-Title: "What do you know right now?"
-Subtitle: "Be honest — this is just for you"
-
-Instruction text:
-  "Click once — you know it well ✓
-   Click twice — you're currently learning it ⏳
-   Click again — remove it"
-
-Skill grid by category.
-Each category is collapsible (open by default):
-
-CATEGORY: Frontend
-  React, Vue.js, Next.js, Angular, TypeScript,
-  JavaScript, HTML/CSS, Tailwind CSS, Redux
-
-CATEGORY: Backend  
-  Node.js, Python, Java, Go, Rust, Django,
-  FastAPI, Express.js, Spring Boot, PHP
-
-CATEGORY: Database
-  PostgreSQL, MongoDB, MySQL, Redis,
-  Firebase, SQLite, Supabase
-
-CATEGORY: Cloud & DevOps
-  AWS, Docker, Kubernetes, Git,
-  Linux, CI/CD, GCP, Azure
-
-CATEGORY: CS Fundamentals
-  DSA, System Design, REST APIs,
-  GraphQL, Microservices, OS basics
-
-CATEGORY: Other / Emerging
-  Machine Learning, TensorFlow, Solidity,
-  Flutter, React Native, Web3
-
-Each skill button:
-  Default (not selected):
-    bg: var(--bg-surface0)
-    border: 1px solid var(--border)
-    color: var(--text-muted)
-    padding: 6px 14px, border-radius: 8px, font-size: 13px
-  
-  State 1 — Know well (click once):
-    bg: var(--info-bg)
-    border: 1px solid var(--info-border)
-    color: var(--info)
-    Left icon: "✓" small
-
-  State 2 — Currently learning (click twice):
-    bg: var(--warning-bg)
-    border: 1px dashed var(--warning-border)
-    color: var(--warning)
-    Left icon: "⏳" small
-
-  State 3 — Click again deselects back to default
-
-Live summary below grid:
-  "You know: React, Node.js, Python"     (info color)
-  "Learning: TypeScript, Docker"         (warning color)
-
-VALIDATION: At least 1 skill selected to proceed.
+| Token | Value | Use |
+|---|---|---|
+| `bg-bg` | `#0f0f0f` | Page background |
+| `bg-s1` | `#1c1c1c` | All cards, nav |
+| `bg-s2` | `#252525` | Inputs, raised panels |
+| `bg-s3` | `#2e2e2e` | Progress tracks, dividers |
+| `text-txt` | `#f0f0ee` | Primary text, headings |
+| `text-muted` | `#888880` | Labels, metadata |
+| `text-dim` | `#555550` | Placeholders |
+| `bg-lime` / `text-lime` | `#d4f53c` | CTAs, top match, active |
+| `bg-lime-bg` / `text-lime-dim` | `#1a2200` / `#8aaa18` | Tag fills |
+| `text-warn` / `bg-warn-bg` | `#ea9d34` / `#2a1500` | Mid scores, urgency |
+| `text-err` / `bg-err-bg` | `#e08080` / `#2a0808` | Low scores, gaps |
+| `border-bd` | `rgba(255,255,255,0.07)` | All card borders |
+| `border-bd2` | `rgba(255,255,255,0.12)` | Hover borders, ghost btns |
 
 ---
 
-STEP 2c — STEP 3: What are you looking for?
+## STEP 5 — Component implementation
 
-Title: "What's your goal right now?"
-Subtitle: "Pick everything that applies"
+### `src/App.jsx` — Root shell + Nav
 
-Section 1 — Looking for (REQUIRED, multi-select):
-  
-  Four option cards in 2x2 grid:
-  
-  [ 🎓 Internship ]         [ 💼 Full-time Job ]
-  "First industry           "Permanent role at
-   experience"               a company"
-  
-  [ 🏆 Hackathons ]         [ 🔄 Freelance ]
-  "Win prizes, build        "Project-based work,
-   portfolio, network"       independence"
+```jsx
+// Nav bar classes:
+// Outer nav:   bg-s1 border-b border-bd h-[52px] px-5 flex items-center justify-between
+// Logo mark:   w-7 h-7 rounded-lg bg-lime flex items-center justify-center
+//              text-[11px] font-bold text-bg
+// Logo text:   text-[15px] font-bold text-txt tracking-tight font-mono
+// Page shell:  min-h-screen bg-bg font-mono
 
-  Selected: accent border + accent bg
-
-Section 2 — Target role (optional):
-  Label: "Any specific role in mind?"
-  Input text: placeholder "e.g. Frontend Developer, Backend Engineer, Full Stack, ML Engineer"
-  Helper text below: "Leave blank if unsure — DevRadar will suggest based on your skills"
-
-Section 3 — Dream companies (optional):
-  Label: "Any companies you have in mind?"
-  Helper: "We'll prioritize these in your gap analysis"
-  
-  Chips from pre-loaded list:
-    Razorpay, Groww, CRED, Zepto, Meesho, PhonePe,
-    Swiggy, Zomato, Ola, BrowserStack, Postman,
-    Freshworks, Unacademy, Flipkart, Amazon, Google
-  
-  Click chip to select (max 3):
-    Selected: accent bg + accent border + "×" to remove
-    Unselected: surface bg + border
-  
-  Or type custom company name:
-    Small input below chips: "Other company..."
-
-VALIDATION: At least 1 goal selected to proceed.
+// Example:
+<nav className="bg-s1 border-b border-bd h-[52px] px-5 flex items-center justify-between">
+  <div className="flex items-center gap-2.5">
+    <div className="w-7 h-7 rounded-lg bg-lime flex items-center justify-center text-[11px] font-bold text-bg">
+      DR
+    </div>
+    <span className="text-[15px] font-bold text-txt tracking-tight">devradar</span>
+  </div>
+  <MemoryBadge />
+</nav>
+```
 
 ---
 
-STEP 2d — STEP 4: Timeline + Confirm
+### `src/components/MemoryBadge.jsx`
 
-Title: "Almost done!"
-Subtitle: "Last two things"
+```jsx
+// Active (HydraDB connected):
+// bg-lime-bg text-lime border border-lime/20 rounded-pill px-3 py-1 text-[10px] font-bold tracking-widest
+// Shows: ● HydraDB / on
 
-Section 1 — Timeline (REQUIRED):
-  Label: "When are you looking to land something?"
-  
-  Four option buttons horizontal row:
-  [ Right now ] [ 1-3 months ] [ 3-6 months ] [ Just exploring ]
-  
-  Style same as experience cards but smaller
+// Inactive / guest:
+// bg-s2 text-muted border border-bd rounded-pill px-3 py-1 text-[10px] font-bold tracking-widest
+// Shows: ○ guest mode
 
-Section 2 — Summary preview (auto-generated):
-  Show a preview card of what will be stored:
-  
-  Card: bg var(--bg-surface0), border var(--border), rounded-xl, padding 16px
-  
-  Title: "Your DevRadar Profile"
-  
-  Rows:
-    Experience:  [selected experience]
-    Know well:   React, Node.js, Python (max 4, "+N more")
-    Learning:    TypeScript (max 2, "+N more")
-    Looking for: Internship, Hackathons
-    Timeline:    1-3 months
-    Companies:   Razorpay, Groww
-  
-  Below card:
-    Small text: "This is saved privately in HydraDB.
-                 Only you can see it. You can update it anytime."
-
-Section 3 — Finish button:
-  Full width, large, bg var(--accent), color white
-  Text: "Build my career graph →"
-  
-  On click:
-    setLoading(true)
-    POST /api/user/init with all collected data
-    On success: call onComplete(userData)
-    On error: show error message, setLoading(false)
-
-LOADING STATE while submitting:
-  Button shows spinner + "Setting up your career wiki..."
-  Disable all inputs
+export default function MemoryBadge({ active = true }) {
+  return (
+    <span className={`
+      rounded-pill px-3 py-1 text-[10px] font-bold tracking-widest border
+      ${active
+        ? 'bg-lime-bg text-lime border-lime/20'
+        : 'bg-s2 text-muted border-bd'}
+    `}>
+      {active ? '● HydraDB / on' : '○ guest mode'}
+    </span>
+  )
+}
+```
 
 ---
 
-STEP 3 — UPDATE /api/user/init TO ACCEPT FULL DATA
+### `src/components/StackInput.jsx`
 
-Update backend/server.js:
+```jsx
+// Section label pattern:  text-[10px] text-muted tracking-[0.1em] uppercase mb-2.5
+// "// label //" style:    use this exact prefix + suffix pattern for all section labels
 
-app.post('/api/user/init', async (req, res) => {
-  try {
-    const {
-      name,
-      experience,
-      stack,           // know_well skills array
-      learning_stack,  // learning skills array
-      goals,           // ["internship", "hackathon"]
-      target_role,     // "Frontend Developer"
-      target_companies, // ["razorpay", "groww"]
-      timeline         // "1-3 months"
-    } = req.body
+// Heading:    text-[26px] font-bold text-txt tracking-tight leading-[1.15] mb-3.5
+// Body text:  text-[12px] text-muted leading-[1.75] mb-5
 
-    // Validate required fields
-    if (!experience) {
-      return res.status(400).json({ error: "Experience level is required" })
-    }
-    if (!stack || stack.length === 0) {
-      return res.status(400).json({ error: "At least one skill is required" })
-    }
-    if (!goals || goals.length === 0) {
-      return res.status(400).json({ error: "At least one goal is required" })
-    }
-    if (!timeline) {
-      return res.status(400).json({ error: "Timeline is required" })
-    }
+// Input wrapper:   w-full bg-s2 border border-bd rounded-[10px] px-3.5 py-2.5 text-[12px] text-txt
+//                  focus:border-lime transition-colors
 
-    const userId = require('uuid').v4()
+// Chip OFF:   bg-transparent text-muted border border-bd2 rounded-pill px-3 py-1.5
+//             text-[11px] font-bold cursor-pointer chip-toggle
+// Chip ON:    bg-lime text-bg border-lime rounded-pill px-3 py-1.5
+//             text-[11px] font-bold cursor-pointer chip-toggle
 
-    // Store full profile in HydraDB
-    await initUser({
-      userId,
-      name: name || "Developer",
-      experience,
-      stack,
-      learning_stack: learning_stack || [],
-      goals,
-      target_role: target_role || "",
-      target_companies: target_companies || [],
-      timeline,
-      created_at: new Date().toISOString()
-    })
+// Primary button:  w-full bg-txt text-bg rounded-btn px-5 py-3 text-[12px] font-bold
+//                  hover:opacity-85 transition-opacity cursor-pointer border-none
+// Ghost button:    bg-transparent text-txt border-[1.5px] border-bd2 rounded-btn px-5 py-3
+//                  text-[12px] font-bold hover:border-white/35 transition-colors
 
-    // Create initial career wiki overview page
-    const overviewContent = `---
-type: overview
-userId: ${userId}
-name: ${name || "Developer"}
-experience: ${experience}
-created: ${new Date().toISOString().split("T")[0]}
----
+// Info blocks at bottom — two-column grid:
+// grid grid-cols-2 gap-3 mt-3.5
+// Each block: bg-s1 border border-bd rounded-card p-5
 
-# Career Overview
-
-**Experience Level:** ${experience}
-**Target Role:** ${target_role || "Not specified yet"}
-**Timeline:** ${timeline}
-
-## Current Stack
-${stack.map(s => `- [[skills/${s.toLowerCase().replace(/ /g, "-")}]] ✓`).join("\n")}
-
-## Currently Learning
-${(learning_stack || []).map(s => `- [[skills/${s.toLowerCase().replace(/ /g, "-")}]] ⏳`).join("\n")}
-
-## Goals
-${goals.map(g => `- ${g}`).join("\n")}
-
-## Target Companies
-${(target_companies || []).map(c => `- [[companies/${c}]]`).join("\n")}
-
-_Feed job descriptions, URLs, or screenshots to build your career wiki._`
-
-    await saveWikiPage(userId, "overview", overviewContent)
-    await appendToLog(userId, {
-      action: "onboarding_complete",
-      detail: `Profile created. Stack: ${stack.join(", ")}. Goals: ${goals.join(", ")}.`
-    })
-
-    console.log(`[Init] New user: ${userId}, stack: ${stack.join(", ")}`)
-
-    res.json({
-      userId,
-      message: "Profile created",
-      name: name || "Developer",
-      stack,
-      learning_stack,
-      goals,
-      target_companies
-    })
-
-  } catch (error) {
-    console.error("[/api/user/init] error:", error)
-    res.status(500).json({ error: "Failed to create profile" })
-  }
-})
+// Big stat number:  text-[40px] font-bold text-txt leading-none mb-1.5
+// Big stat label:   text-[11px] text-muted leading-relaxed
+```
 
 ---
 
-STEP 4 — REMOVE seed-demo.js FROM AUTO-RUN
+### `src/components/Dashboard.jsx`
 
-In package.json, remove any seed script from "start" or "dev".
-seed-demo.js should only run manually: node seed-demo.js
+```jsx
+// Return/memory banner:
+// bg-s2 border border-lime/15 rounded-card p-4 mb-4 flex gap-2.5 items-start
+// Text inside: text-[12px] text-muted leading-[1.75]
+// Highlighted words: text-lime font-bold (Claude-recalled data, urgent deadlines)
 
-Also: clear any pre-seeded HydraDB data to test clean onboarding.
+// Stat cards row:  grid grid-cols-3 gap-2.5 mb-4
+// Each stat card:  bg-s1 border border-bd rounded-[14px] p-3.5 text-center
+// Stat number:     text-[26px] font-bold text-txt leading-none
+// Stat label:      text-[9px] text-muted mt-1.5 tracking-[0.08em] uppercase
 
----
-
-STEP 5 — UPDATE /api/analyze TO USE USER PROFILE
-
-Currently analyze pulls from JSON files generically.
-Now it should filter based on user's actual target companies and goals.
-
-app.post('/api/analyze', async (req, res) => {
-  const { userId } = req.body
-  const user = await getUser(userId)
-  
-  // user.stack = their actual skills
-  // user.target_companies = their preferred companies
-  // user.experience = beginner/fresher/working/switching
-  // user.goals = ["internship", "hackathon"]
-  
-  const startups = require('./data/startups.json')
-  
-  // Filter: if user has target companies, show those first
-  let ordered = [...startups]
-  if (user.target_companies?.length > 0) {
-    ordered.sort((a, b) => {
-      const aTarget = user.target_companies.includes(a.id) ? -1 : 0
-      const bTarget = user.target_companies.includes(b.id) ? -1 : 0
-      return aTarget - bTarget
-    })
-  }
-  
-  // Filter by experience: beginner only sees 0-1yr roles
-  if (user.experience === "student" || user.experience === "fresher") {
-    ordered = ordered.filter(s =>
-      s.min_experience === "0-1 years" || s.min_experience === "Fresher"
-    )
-  }
-  
-  // Match stack
-  const withMatch = ordered.map(startup => {
-    const userSkills = [...(user.stack || []), ...(user.learning_stack || [])]
-    const matching = startup.skills_required.filter(s => userSkills.includes(s))
-    const missing = startup.skills_required.filter(s => !userSkills.includes(s))
-    const match_percentage = Math.round((matching.length / startup.skills_required.length) * 100)
-    return { ...startup, match_percentage, matching_skills: matching, missing_skills: missing }
-  })
-  .sort((a, b) => b.match_percentage - a.match_percentage)
-  
-  res.json({ startups: withMatch, user_profile: { stack: user.stack, goals: user.goals } })
-})
+// Tab bar:
+// flex border border-bd rounded-[12px] overflow-hidden mb-4.5
+// Each tab:         flex-1 py-2.5 text-[11px] font-bold text-muted text-center
+//                   cursor-pointer border-r border-bd last:border-r-0
+//                   transition-all bg-transparent hover:bg-s2
+// Active tab:       bg-s2 text-txt
+```
 
 ---
 
-STEP 6 — SHOW PERSONALIZED EMPTY STATE
+### `src/components/StartupCard.jsx`
 
-When user first completes onboarding and graph loads:
+```jsx
+// Card wrapper:
+// bg-s1 border border-bd rounded-card p-[18px] mb-2.5 card-hover cursor-pointer
 
-Graph is empty (no wiki pages yet).
-Show a helpful empty state — NOT a generic "no data" message.
+// Card header:  flex justify-between items-start mb-3
+// Company name: text-[15px] font-bold text-txt tracking-tight
+// Meta line:    text-[10px] text-muted mt-0.5 tracking-[0.02em]
 
-EmptyGraphState component:
+// Score badge — HIGH (≥70%):
+//   bg-lime text-bg rounded-pill px-2.5 py-1 text-[11px] font-bold
+// Score badge — MID (40–69%):
+//   bg-warn-bg text-warn border border-warn/30 rounded-pill px-2.5 py-1 text-[11px] font-bold
+// Score badge — LOW (<40%):
+//   bg-err-bg text-err border border-err/25 rounded-pill px-2.5 py-1 text-[11px] font-bold
 
-Show inside graph canvas when graphData.nodes.length <= 1:
+// Progress track:  h-[3px] bg-s3 rounded-full overflow-hidden mb-1.5
+// Progress fill — HIGH:  h-full bg-lime bar-fill
+// Progress fill — MID:   h-full bg-warn bar-fill
+// Progress fill — LOW:   h-full bg-err bar-fill
 
-  Icon: 🗺️ large
-  
-  Title: "Hey {user.name}! Your career graph is ready to build."
-  
-  Message: "You've told us your stack. Now feed DevRadar
-            some career data to grow your graph."
-  
-  Three action cards in a row:
-  
-  Card 1 — Paste a job description:
-    Icon: 📋
-    Title: "Job Description"
-    Text: "Copy-paste from LinkedIn, Naukri, or any job board"
-    Button: "Paste JD →" → navigates to Feed Data
-  
-  Card 2 — Share a company URL:
-    Icon: 🔗
-    Title: "Company URL"
-    Text: "LinkedIn job post, company careers page, Devfolio hackathon"
-    Button: "Add URL →" → navigates to Feed Data
-  
-  Card 3 — Upload a screenshot:
-    Icon: 📸
-    Title: "Screenshot"
-    Text: "Screenshot of a job post, tweet, or anything career-related"
-    Button: "Upload →" → navigates to Feed Data
-  
-  Below the three cards:
-    "Or start by exploring" text
-    Two pill links:
-      "Browse matching startups →"
-      "Find hackathons →"
+// Bar labels:  flex justify-between text-[9px] text-dim tracking-[0.04em] uppercase
 
-Style:
-  Cards: bg var(--bg-mantle), border var(--border), rounded-xl, padding 16px
-  Action buttons: var(--accent) color text, no bg, underline hover
-  Position: absolute center of graph canvas
+// Skill tags row:  flex flex-wrap gap-1.5 mt-3
+// Tag — known:     bg-lime-bg text-lime-dim border border-lime/15 rounded-pill
+//                  px-2.5 py-1 text-[10px] font-bold
+// Tag — gap:       bg-warn-bg text-warn border border-warn/20 rounded-pill
+//                  px-2.5 py-1 text-[10px] font-bold  (append " ↑")
+// Tag — big gap:   bg-err-bg text-err border border-err/20 rounded-pill
+//                  px-2.5 py-1 text-[10px] font-bold  (append " ↑ gap")
+```
 
 ---
 
-STEP 7 — ONBOARDING COMPLETION ANIMATION
+### `src/components/HackathonCard.jsx`
 
-When user clicks "Build my career graph →":
+```jsx
+// Card:   bg-s1 border border-bd rounded-card px-[18px] py-3.5 mb-2.5 flex items-center gap-3.5
+//         card-hover cursor-pointer
+// URGENT card border override:  border-warn/30
 
-While loading:
-  Wizard card stays visible
-  Button spins: "Setting up your career wiki..."
-  Small progress steps appear below button:
-    ✓ Creating your profile...
-    ✓ Saving to HydraDB...
-    ✓ Building your wiki overview...
-    ⏳ Preparing your career graph...
+// Date block:  min-w-[40px] text-center
+// Day number:  text-[22px] font-bold text-txt leading-none
+// Month:       text-[9px] text-muted uppercase tracking-[0.1em] mt-0.5
 
-After success:
-  Card fades out
-  Graph canvas fades in
-  Empty state shows with personalized greeting
-  Smooth 400ms transition
+// Separator:   w-px bg-s3 self-stretch
 
----
+// Info block:  flex-1 min-w-0
+// Name:        text-[12px] font-bold text-txt
+// Org line:    text-[10px] text-muted mt-0.5
 
-STEP 8 — RETURNING USER KNOWS THEIR STACK
+// Right column:  flex flex-col items-end gap-1.5
 
-On return visit, ReturningScreen shows user's own stack:
+// Urgency badge:
+//   bg-[#1a1000] text-warn border border-warn/30 rounded-pill
+//   px-2 py-1 text-[9px] font-bold tracking-[0.06em] uppercase
+//   Prefix with: ⚡
 
-"Welcome back, Arjun!
-
-Your stack: React · Node.js · Python
-Still learning: TypeScript · Docker
-
-Last visit: 3 days ago
-Progress since then: 1 wiki page added
-
-[Continue to your graph →]"
-
-This is pulled from HydraDB — the actual data the user entered.
-NOT demo seed data.
+// Match score badge:
+//   same as StartupCard score badge (HIGH/MID/LOW) but text-[10px] px-2 py-1
+```
 
 ---
 
-COMPLETE USER JOURNEY — FIRST TIME
+### `src/components/GapAnalysis.jsx`
 
-Step 1: User opens http://localhost:5173
-  → OnboardingWizard Step 1 (Who are you?)
-  → User selects "Student" + types name "Arjun"
-  → Clicks Next
+```jsx
+// Claude recall box:
+// bg-s2 border border-lime/12 rounded-[12px] p-3.5 mb-3.5
+// Label:   text-[10px] font-bold text-lime tracking-[0.1em] uppercase mb-2
+//          Prefix: "● claude · context-aware"
+// Text:    text-[11px] text-muted leading-[1.75]
+// Bold highlights inside: text-txt font-bold (company names, skill names)
 
-Step 2: OnboardingWizard Step 2 (Skills)
-  → Arjun clicks React once (know well)
-  → Clicks Node.js once (know well)
-  → Clicks Python once (know well)
-  → Clicks TypeScript twice (learning)
-  → Summary shows: "You know: React, Node.js, Python | Learning: TypeScript"
-  → Clicks Next
+// Chart card wrapper:
+// bg-s1 border border-bd rounded-card p-[18px] mb-3
 
-Step 3: OnboardingWizard Step 3 (Goals)
-  → Clicks "Internship" card
-  → Clicks "Hackathons" card
-  → Types "Frontend Developer" in role field
-  → Clicks Razorpay chip
-  → Clicks Groww chip
-  → Clicks Next
+// Chart section label:
+// text-[10px] text-muted tracking-[0.1em] uppercase mb-4
+// Pattern: "// skill gap analysis //"
 
-Step 4: OnboardingWizard Step 4 (Timeline + Confirm)
-  → Clicks "1-3 months"
-  → Sees profile preview card
-  → Clicks "Build my career graph →"
+// ── Bar chart (startup match scores) ──────────
+// Container:   flex items-end gap-2 h-[110px] pb-5 relative
+// Each bar column: flex flex-col items-center flex-1 justify-end relative
+// Bar fill:    rounded-t-[4px] w-full  (height set dynamically as inline style)
+//   HIGH bars:  bg-lime
+//   MID bars:   bg-warn
+//   LOW bars:   bg-err
+// Val above bar:  text-[10px] font-bold absolute top-[-18px]
+//   HIGH: text-lime  |  MID: text-warn  |  LOW: text-err
+// Label below bar: text-[9px] text-muted text-center absolute bottom-[-18px]
+//                  w-full overflow-hidden text-ellipsis whitespace-nowrap
 
-After submit:
-  → POST /api/user/init called with full data
-  → userId stored in localStorage
-  → HydraDB stores full profile
-  → Wiki overview page created
-  → Graph loads with empty state
-  → "Hey Arjun! Your career graph is ready to build."
-  → Arjun feeds a job description
-  → Graph populates with his actual data
+// ── Horizontal skill bars (learn priority) ────
+// Row:          flex items-center gap-2.5 py-2.5 border-b border-bd last:border-b-0
+// Skill name:   text-[11px] font-bold text-txt min-w-[100px] tracking-[0.01em]
+// Track:        flex-1 h-1 bg-s3 rounded-full overflow-hidden
+// Fill:         h-full rounded-full
+//   Priority 1: bg-lime
+//   Priority 2: bg-lime/60
+//   Priority 3: bg-warn
+//   Priority 4: bg-err
+// Time label:   text-[10px] text-muted
+// Salary badge: text-[10px] font-bold rounded-[10px] px-2 py-0.5
+//   Priority 1: bg-lime-bg text-lime
+//   Priority 2: bg-lime-bg text-lime-dim
+//   Priority 3: bg-warn-bg text-warn
+//   Priority 4: bg-err-bg text-err
 
-COMPLETE USER JOURNEY — RETURN VISIT
-
-User opens http://localhost:5173 3 days later
-  → localStorage has userId
-  → Return context fetched from HydraDB
-  → ReturningScreen shows:
-      "Welcome back, Arjun!
-       You added Razorpay wiki page last session.
-       TypeScript is still in your learning list."
-  → User clicks Continue
-  → Graph loads with Razorpay node visible from last session
-  → MemoryBadge shows same context
+// ── Donut chart (stack coverage) ──────────────
+// Use an <svg> donut built with <circle> stroke-dasharray
+// Colors: lime (strong), lime/45 (learning), err (gaps)
+// Centre text: text-[14px] font-bold fill-txt percentage
+// Legend rows: flex items-center gap-2 text-[11px] text-muted
+// Dot:  w-2 h-2 rounded-[2px] flex-shrink-0
+```
 
 ---
 
-GIT COMMITS
+## STEP 6 — Typography rules (apply everywhere)
 
-"fix app state machine for proper onboarding flow"
-"create OnboardingWizard step 1 who are you"
-"create OnboardingWizard step 2 skill selection grid"
-"create OnboardingWizard step 3 goals and companies"
-"create OnboardingWizard step 4 timeline confirm"
-"update user init api to accept full onboarding data"
-"filter analyze results by user experience and goals"
-"add empty graph state with feed prompts"
-"remove seed demo from auto-run"
-"test full first-time user flow end to end"
-"test return visit shows actual user data not demo"
+```
+ALL text uses font-mono (JetBrains Mono).
+Never use font-sans or font-serif.
+
+Heading sizes:
+  Hero / page title:    text-[26px] font-bold tracking-tight   (letter-spacing: -0.02em)
+  Card title:           text-[15px] font-bold tracking-tight
+  Sub-card title:       text-[12px] font-bold
+  Section label:        text-[10px] uppercase tracking-[0.1em]  ← // pattern //
+
+Body sizes:
+  Body text:            text-[12px] leading-[1.75]
+  Metadata / captions:  text-[10px] leading-relaxed
+  Micro labels:         text-[9px] uppercase tracking-[0.06em–0.1em]
+
+Text colours:
+  Primary:    text-txt    (#f0f0ee)
+  Secondary:  text-muted  (#888880)
+  Disabled:   text-dim    (#555550)
+  Accent:     text-lime   (#d4f53c)  — interactive elements only
+  Warning:    text-warn   (#ea9d34)
+  Error:      text-err    (#e08080)
+
+Section label pattern — use this EVERYWHERE for section headings:
+  <p className="text-[10px] text-muted tracking-[0.1em] uppercase mb-3.5">
+    // startup matches //
+  </p>
+```
+
+---
+
+## STEP 7 — Spacing system
+
+| Name | Value | Tailwind class | Use |
+|---|---|---|---|
+| XS | 4px | `gap-1` / `p-1` | Icon-to-text gap |
+| SM | 8px | `gap-2` / `p-2` | Chip gap, tight rows |
+| MD | 12px | `gap-3` / `p-3` | Card inner gap |
+| LG | 16px | `gap-4` / `p-4` | Card padding |
+| XL | 24px | `gap-6` / `p-6` | Between sections |
+| 2XL | 40px | `gap-10` / `p-10` | Section separators |
+
+Card padding: always `p-[18px]` (not a Tailwind default, use inline or extend config).
+
+---
+
+## STEP 8 — Page title fix
+
+In `public/index.html`, change:
+```html
+<!-- FROM: -->
+<title>React App</title>
+
+<!-- TO: -->
+<title>devradar — your career. one screen.</title>
+<meta name="description" content="AI-powered career intelligence for Indian developers. Match your stack to top startups, surface hackathons, and identify skill gaps — remembered across sessions by HydraDB." />
+<meta name="theme-color" content="#0f0f0f" />
+<meta property="og:title" content="devradar — your career. one screen." />
+<meta property="og:description" content="Stack matching · Hackathon radar · Gap analysis · Persistent memory" />
+```
+
+---
+
+## STEP 9 — Render cold-start UX (add to App.jsx)
+
+```jsx
+// Add this state and banner — prevents "is this broken?" when Render spins up
+const [backendReady, setBackendReady] = useState(false)
+const [waking, setWaking] = useState(true)
+
+useEffect(() => {
+  fetch(import.meta.env.VITE_API_URL + '/api/health')
+    .then(() => { setBackendReady(true); setWaking(false) })
+    .catch(() => setWaking(false))
+}, [])
+
+// Banner JSX (show when waking === true):
+{waking && (
+  <div className="bg-s2 border border-warn/20 rounded-card px-4 py-3 mb-4 flex items-center gap-2.5">
+    <span className="text-warn text-[12px]">⏳</span>
+    <p className="text-[11px] text-muted">
+      backend warming up — <span className="text-txt font-bold">give it ~30 seconds</span> on first load (Render free tier)
+    </p>
+  </div>
+)}
+```
+
+---
+
+## STEP 10 — Final checklist before pushing
+
+- [ ] `tailwind.config.js` has all custom colors + mono font
+- [ ] `index.html` has JetBrains Mono link + correct title + OG tags
+- [ ] `index.css` sets `font-family: 'JetBrains Mono'` on `body`
+- [ ] All 6 components use `font-mono` — zero `font-sans` anywhere
+- [ ] Every section label uses `// label //` pattern
+- [ ] Score badges: lime ≥70%, warn 40–69%, err <40%
+- [ ] Chip ON state: `bg-lime text-bg` — chip OFF: `bg-transparent text-muted border-bd2`
+- [ ] MemoryBadge shown in nav at all times
+- [ ] Render cold-start banner added to App.jsx
+- [ ] `bg-bg` (#0f0f0f) set on `<body>` — no white flash on load
+
+---
+
+*Theme: Necto Mono — dark near-black · monospace-first · lime accent #d4f53c*
+*Applied to: DevRadar — WikiThon 2025 · React 18 + Tailwind CSS*
