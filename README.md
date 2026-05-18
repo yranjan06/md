@@ -1,437 +1,454 @@
+# DevRadar — UI Changes Implementation Prompt
 
-<style>
-*{box-sizing:border-box;margin:0;padding:0}
-body{background:#0f0f0f;font-family:'Courier New',monospace;color:#f0f0ee;overflow-x:hidden}
-.nav{height:52px;border-bottom:1px solid rgba(255,255,255,0.07);display:flex;align-items:center;justify-content:space-between;padding:0 28px;background:#0f0f0f;position:sticky;top:0;z-index:10}
-.nav-logo{display:flex;align-items:center;gap:10px}
-.nav-mark{position:relative;width:28px;height:28px}
-.nav-wordmark{font-size:14px;font-weight:700;color:#f0f0ee;letter-spacing:-.01em}
-.nav-right{display:flex;align-items:center;gap:10px}
-.nav-pill{font-size:9px;font-weight:700;padding:3px 10px;border-radius:20px;letter-spacing:.1em;text-transform:uppercase;background:#1a2200;color:#d4f53c;border:1px solid rgba(212,245,60,.2)}
-.nav-btn{font-size:11px;font-weight:700;padding:7px 16px;border-radius:30px;background:#d4f53c;color:#0f0f0f;border:none;cursor:pointer;font-family:'Courier New',monospace;letter-spacing:.02em}
-.hero{text-align:center;padding:56px 28px 48px;position:relative}
-.hero-radar{display:flex;justify-content:center;margin-bottom:32px}
-.hero-title-wrap{display:flex;justify-content:center;margin-bottom:28px}
-.hero-sub{font-size:13px;color:#888880;line-height:1.85;margin-bottom:32px;max-width:440px;margin-left:auto;margin-right:auto}
-.hero-sub strong{color:#d4f53c;font-weight:700}
-.cta-row{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin-bottom:64px}
-.btn-fill{font-size:12px;font-weight:700;padding:12px 28px;border-radius:30px;background:#d4f53c;color:#0f0f0f;border:none;cursor:pointer;font-family:'Courier New',monospace;letter-spacing:.02em;transition:opacity .15s}
-.btn-fill:hover{opacity:.85}
-.btn-ghost{font-size:12px;font-weight:700;padding:12px 28px;border-radius:30px;background:transparent;color:#f0f0ee;border:1.5px solid rgba(255,255,255,0.15);cursor:pointer;font-family:'Courier New',monospace;letter-spacing:.02em;transition:border-color .15s}
-.btn-ghost:hover{border-color:rgba(255,255,255,.35)}
-.divider{height:1px;background:rgba(255,255,255,0.06);margin:0 28px}
-.stats{display:grid;grid-template-columns:1fr 1fr 1fr;gap:0;border-bottom:1px solid rgba(255,255,255,0.06)}
-.stat{padding:28px 20px;text-align:center;border-right:1px solid rgba(255,255,255,0.06)}
-.stat:last-child{border-right:none}
-.stat-n{font-size:36px;font-weight:700;color:#d4f53c;letter-spacing:-.02em;line-height:1}
-.stat-l{font-size:9px;color:#555550;letter-spacing:.1em;text-transform:uppercase;margin-top:6px}
-.sec{padding:56px 28px}
-.sec-lbl{font-size:9px;color:#555550;letter-spacing:.14em;text-transform:uppercase;margin-bottom:16px}
-.sec-lbl span{color:#d4f53c}
-.sec-h{font-size:22px;font-weight:700;color:#f0f0ee;letter-spacing:-.02em;line-height:1.2;margin-bottom:12px}
-.feat-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-top:32px}
-.feat-card{background:#1c1c1c;border:1px solid rgba(255,255,255,0.07);border-radius:14px;padding:22px;transition:border-color .2s}
-.feat-card:hover{border-color:rgba(212,245,60,.2)}
-.feat-icon{width:36px;height:36px;border-radius:8px;background:#1a2200;border:1px solid rgba(212,245,60,.15);display:flex;align-items:center;justify-content:center;margin-bottom:14px}
-.feat-title{font-size:13px;font-weight:700;color:#f0f0ee;margin-bottom:8px}
-.feat-body{font-size:11px;color:#555550;line-height:1.8}
-.feat-body strong{color:#888880;font-weight:400}
-.mem-sec{background:#111119;border-top:1px solid rgba(255,255,255,0.06);border-bottom:1px solid rgba(255,255,255,0.06);padding:48px 28px}
-.mem-inner{display:flex;gap:40px;align-items:center;flex-wrap:wrap}
-.mem-left{flex:1;min-width:240px}
-.mem-right{flex:1;min-width:240px}
-.mem-card{background:#0f0f0f;border:1px solid rgba(212,245,60,.12);border-radius:14px;padding:18px}
-.mem-row{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid rgba(255,255,255,0.05);font-size:11px;color:#555550}
-.mem-row:last-child{border-bottom:none}
-.mem-row strong{color:#888880;font-weight:400}
-.mem-dot{width:6px;height:6px;border-radius:50%;background:#d4f53c;flex-shrink:0}
-.mem-dot-dim{background:#2e2e2e}
-.stack-sec{padding:48px 28px;border-bottom:1px solid rgba(255,255,255,0.06)}
-.scroll-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:20px}
-.s-tag{font-size:11px;font-weight:700;padding:6px 14px;border-radius:20px;letter-spacing:.03em;font-family:'Courier New',monospace}
-.s-tag-lime{background:#1a2200;color:#8aaa18;border:1px solid rgba(212,245,60,.15)}
-.s-tag-dim{background:#1c1c1c;color:#3a3a3a;border:1px solid rgba(255,255,255,0.05)}
-.how-sec{padding:48px 28px;border-bottom:1px solid rgba(255,255,255,0.06)}
-.step-grid{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:12px;margin-top:28px}
-.step{background:#1c1c1c;border-radius:12px;padding:18px;border:1px solid rgba(255,255,255,0.07)}
-.step-num{font-size:24px;font-weight:700;color:#2e2e2e;margin-bottom:10px}
-.step-title{font-size:11px;font-weight:700;color:#f0f0ee;margin-bottom:6px}
-.step-body{font-size:10px;color:#555550;line-height:1.7}
-.footer{padding:32px 28px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px}
-.footer-logo{display:flex;align-items:center;gap:8px}
-.footer-wordmark{font-size:13px;font-weight:700;color:#555550}
-.footer-links{display:flex;gap:20px}
-.footer-link{font-size:10px;color:#3a3a3a;letter-spacing:.06em;cursor:pointer;text-transform:uppercase}
-.footer-link:hover{color:#888880}
-.badge-row{display:flex;gap:8px;margin-top:6px}
-.badge{font-size:9px;font-weight:700;padding:3px 9px;border-radius:20px;letter-spacing:.1em;text-transform:uppercase}
-</style>
+> Paste this entire prompt into Claude Code or your AI editor.
+> Apply all changes across the DevRadar React 18 + Tailwind CSS codebase.
 
-<h2 class="sr-only">DevRadar landing page — dot pixel dark theme with animated radar logo</h2>
+---
 
-<nav class="nav">
-  <div class="nav-logo">
-    <canvas id="nav-radar" width="28" height="28"></canvas>
-    <span class="nav-wordmark">devradar</span>
-  </div>
-  <div class="nav-right">
-    <span class="nav-pill">● HydraDB</span>
-    <button class="nav-btn">get started →</button>
-  </div>
-</nav>
+## CONTEXT
 
-<section class="hero">
-  <div class="hero-radar">
-    <canvas id="hero-radar" width="200" height="200"></canvas>
-  </div>
+- **Repo:** https://github.com/iamabhaydawar/devradar
+- **Frontend:** React 18 + Vite + Tailwind CSS → `frontend/src/`
+- **Theme:** Necto Mono dark (#0f0f0f canvas, #d4f53c lime accent, monospace everywhere)
+- **Components:** App.jsx, StackInput.jsx, Dashboard.jsx, StartupCard.jsx,
+  HackathonCard.jsx, GapAnalysis.jsx, MemoryBadge.jsx
 
-  <div class="hero-title-wrap">
-    <canvas id="pixel-text" width="624" height="96"></canvas>
-  </div>
+---
 
-  <div class="badge-row" style="justify-content:center;margin-bottom:20px">
-    <span class="badge" style="background:#1a2200;color:#d4f53c;border:1px solid rgba(212,245,60,.2)">student</span>
-    <span class="badge" style="background:#1c1c1c;color:#555550;border:1px solid rgba(255,255,255,0.07)">india · 2025</span>
-    <span class="badge" style="background:#1c1c1c;color:#555550;border:1px solid rgba(255,255,255,0.07)">WikiThon</span>
-  </div>
+## CHANGE 1 — Sidebar navigation order
 
-  <p class="hero-sub">
-    AI-powered career intelligence for Indian developers.<br>
-    Match your stack · Surface hackathons · Identify gaps.<br>
-    <strong>Every session remembered by HydraDB.</strong>
-  </p>
+**File:** `frontend/src/components/Sidebar.jsx`
+(or wherever the sidebar nav items are defined — find the component
+that renders the sidebar menu)
 
-  <div class="cta-row">
-    <button class="btn-fill">analyse my stack →</button>
-    <button class="btn-ghost">view on github</button>
-  </div>
+**Rule:** Move "Roadmap Journey" nav item to appear **directly below**
+"Your Profile" in the sidebar. It should be the second item in the list.
 
-  <div style="display:flex;justify-content:center">
-    <div style="background:#1c1c1c;border:1px solid rgba(255,255,255,0.07);border-radius:12px;padding:12px 20px;display:inline-flex;align-items:center;gap:10px">
-      <div style="width:6px;height:6px;border-radius:50%;background:#d4f53c"></div>
-      <span style="font-size:10px;color:#555550;letter-spacing:.06em">devradar.vercel.app</span>
-      <span style="font-size:10px;color:#3a3a3a">·</span>
-      <span style="font-size:10px;color:#3a3a3a;letter-spacing:.04em">backend on render</span>
-    </div>
-  </div>
-</section>
+**Before (current order — example):**
+```jsx
+<NavItem icon="home"     label="Dashboard"      />
+<NavItem icon="radar"    label="Roadmap Journey" />  ← currently here
+<NavItem icon="user"     label="Your Profile"   />
+<NavItem icon="chart"    label="Gap Analysis"   />
+```
 
-<div class="stats">
-  <div class="stat"><div class="stat-n">20+</div><div class="stat-l">startups mapped</div></div>
-  <div class="stat"><div class="stat-n">15+</div><div class="stat-l">hackathons tracked</div></div>
-  <div class="stat"><div class="stat-n">30</div><div class="stat-l">skills in taxonomy</div></div>
-</div>
+**After (correct order):**
+```jsx
+<NavItem icon="home"     label="Dashboard"      />
+<NavItem icon="user"     label="Your Profile"   />
+<NavItem icon="radar"    label="Roadmap Journey" />  ← moved here, below Profile
+<NavItem icon="chart"    label="Gap Analysis"   />
+```
 
-<section class="sec">
-  <div class="sec-lbl">// <span>features</span> //</div>
-  <div class="sec-h">everything you need to<br>land your first startup role.</div>
-  <div style="font-size:12px;color:#555550;max-width:400px;line-height:1.75">Built in 48 hours for WikiThon 2025. Every feature is real, every dataset is curated, every AI response is context-aware.</div>
+**Exact rule:** Find every array, list, or JSX block that defines sidebar
+navigation items. Locate "Your Profile" and "Roadmap Journey" entries.
+Ensure "Roadmap Journey" always comes immediately after "Your Profile"
+regardless of how many items are in the list.
 
-  <div class="feat-grid">
-    <div class="feat-card">
-      <div class="feat-icon">
-        <canvas id="icon1" width="20" height="20"></canvas>
-      </div>
-      <div class="feat-title">// stack matching //</div>
-      <div class="feat-body">Enter your skills. Get ranked against <strong>20 top Indian startups</strong> by stack overlap. Razorpay, Groww, Zepto and more.</div>
-    </div>
-    <div class="feat-card">
-      <div class="feat-icon">
-        <canvas id="icon2" width="20" height="20"></canvas>
-      </div>
-      <div class="feat-title">// gap analysis //</div>
-      <div class="feat-body">Claude AI pinpoints your missing skills with <strong>salary impact and timelines.</strong> TypeScript in 2 weeks → +18%.</div>
-    </div>
-    <div class="feat-card">
-      <div class="feat-icon">
-        <canvas id="icon3" width="20" height="20"></canvas>
-      </div>
-      <div class="feat-title">// hackathon radar //</div>
-      <div class="feat-body">Live hackathons scored against your stack. <strong>Deadline urgency surfaced</strong> on every return visit.</div>
-    </div>
-    <div class="feat-card">
-      <div class="feat-icon" style="background:#0f0f0f;border-color:rgba(212,245,60,.3)">
-        <i class="ti ti-brain" style="font-size:14px;color:#d4f53c" aria-hidden="true"></i>
-      </div>
-      <div class="feat-title">// HydraDB memory //</div>
-      <div class="feat-body">Persistent cross-session memory. <strong>Returns are context-aware</strong> — Claude references your history.</div>
-    </div>
-    <div class="feat-card">
-      <div class="feat-icon">
-        <i class="ti ti-briefcase" style="font-size:14px;color:#8aaa18" aria-hidden="true"></i>
-      </div>
-      <div class="feat-title">// interview prep //</div>
-      <div class="feat-body">Company-specific questions generated by Claude. <strong>Razorpay, Groww, CRED</strong> — each startup's real interview patterns.</div>
-    </div>
-    <div class="feat-card">
-      <div class="feat-icon">
-        <i class="ti ti-shield-check" style="font-size:14px;color:#8aaa18" aria-hidden="true"></i>
-      </div>
-      <div class="feat-title">// fallback mode //</div>
-      <div class="feat-body">If HydraDB is unreachable, an in-memory Map takes over. <strong>The demo never crashes.</strong></div>
-    </div>
-  </div>
-</section>
+---
 
-<div class="divider"></div>
+## CHANGE 2 — Logo: shared component used on ALL pages
 
-<section class="mem-sec">
-  <div class="mem-inner">
-    <div class="mem-left">
-      <div class="sec-lbl">// <span>persistent memory</span> //</div>
-      <div class="sec-h" style="font-size:18px;margin-bottom:12px">HydraDB is not a<br>side feature. It is<br>the product.</div>
-      <div style="font-size:12px;color:#555550;line-height:1.8;margin-bottom:20px">Every startup you view, every gap Claude identifies, every hackathon you bookmark — stored as a living profile. Returns feel like talking to someone who was paying attention.</div>
-      <div style="font-size:11px;color:#d4f53c;font-weight:700;letter-spacing:.04em">→ run node seed-demo.js to see it in action</div>
-    </div>
-    <div class="mem-right">
-      <div style="font-size:9px;color:#555550;letter-spacing:.1em;text-transform:uppercase;margin-bottom:10px">demo_user_001 · 7-day profile</div>
-      <div class="mem-card">
-        <div class="mem-row"><div class="mem-dot"></div><strong>day 1</strong> · viewed Razorpay, Groww</div>
-        <div class="mem-row"><div class="mem-dot"></div><strong>day 3</strong> · gap analysis run → TypeScript, Docker</div>
-        <div class="mem-row"><div class="mem-dot"></div><strong>day 5</strong> · bookmarked ETHIndia 2025</div>
-        <div class="mem-row"><div class="mem-dot"></div><strong>day 7</strong> · return visit triggers memory recall</div>
-        <div class="mem-row" style="margin-top:6px;padding-top:12px;border-top:1px solid rgba(212,245,60,.1)">
-          <i class="ti ti-sparkles" style="font-size:12px;color:#d4f53c;flex-shrink:0" aria-hidden="true"></i>
-          <span style="color:#8aaa18;font-size:10px;line-height:1.6">Welcome back — last visit you explored Razorpay. TypeScript closes 60% of their roles. ETHIndia in 6 days.</span>
-        </div>
-      </div>
-    </div>
-  </div>
-</section>
+### 2a. Create a shared Logo component
 
-<section class="stack-sec">
-  <div class="sec-lbl">// <span>tech stack</span> //</div>
-  <div class="sec-h" style="font-size:16px;margin-bottom:4px">built with real tools.</div>
-  <div style="font-size:11px;color:#555550;margin-bottom:4px">React 18 · Node.js · Anthropic Claude · HydraDB · Vercel · Render</div>
-  <div class="scroll-row">
-    <span class="s-tag s-tag-lime">React 18</span>
-    <span class="s-tag s-tag-lime">Tailwind CSS</span>
-    <span class="s-tag s-tag-lime">Node.js</span>
-    <span class="s-tag s-tag-lime">Express</span>
-    <span class="s-tag s-tag-lime">Claude API</span>
-    <span class="s-tag s-tag-lime">HydraDB SDK</span>
-    <span class="s-tag s-tag-dim">Vite</span>
-    <span class="s-tag s-tag-dim">Render</span>
-    <span class="s-tag s-tag-dim">Vercel</span>
-    <span class="s-tag s-tag-dim">JSON datasets</span>
-  </div>
-</section>
+Create `frontend/src/components/Logo.jsx` with TWO exports:
 
-<section class="how-sec">
-  <div class="sec-lbl">// <span>how it works</span> //</div>
-  <div class="sec-h" style="font-size:16px">four steps. one screen.</div>
-  <div class="step-grid">
-    <div class="step">
-      <div class="step-num">01</div>
-      <div class="step-title">enter your stack</div>
-      <div class="step-body">Pick your skills from 30 curated options. React, Python, Go, Docker — whatever you know.</div>
-    </div>
-    <div class="step">
-      <div class="step-num">02</div>
-      <div class="step-title">get matched</div>
-      <div class="step-body">Claude deep-analyses your top 5 startup matches. Real tech stacks, real salary ranges.</div>
-    </div>
-    <div class="step">
-      <div class="step-num">03</div>
-      <div class="step-title">find the gaps</div>
-      <div class="step-body">AI generates a prioritised skill gap report with weeks to learn and salary impact.</div>
-    </div>
-    <div class="step">
-      <div class="step-num">04</div>
-      <div class="step-title">come back richer</div>
-      <div class="step-body">HydraDB stores everything. Next visit picks up exactly where you left off.</div>
-    </div>
-  </div>
-</section>
+**Export 1 — `<LogoMark size={n} />` (animated dot-pixel radar icon)**
 
-<div style="background:#0a0a0a;border-top:1px solid rgba(255,255,255,0.06);border-bottom:1px solid rgba(255,255,255,0.06);padding:48px 28px;text-align:center">
-  <div style="font-size:9px;color:#555550;letter-spacing:.14em;text-transform:uppercase;margin-bottom:16px">// ready to map your career? //</div>
-  <div style="font-size:20px;font-weight:700;color:#f0f0ee;letter-spacing:-.01em;margin-bottom:8px">Your career. One screen.<br>Always remembered.</div>
-  <div style="font-size:12px;color:#555550;margin-bottom:28px">Free · Open source · Built in 48h</div>
-  <div style="display:flex;gap:12px;justify-content:center">
-    <button class="btn-fill">launch devradar →</button>
-    <button class="btn-ghost">github repo</button>
-  </div>
-</div>
+This is a `<canvas>` element rendering a 13×13 dot grid radar with:
+- Near-black background (`#080808`)
+- Dim dots for the grid (`#1e1e1c`)
+- Ring dots at radii r=2, r=4, r=6 from center (`#383830`)
+- Crosshair dots along center row/col (`#232320`)
+- Lime sweep arm rotating continuously (`rgba(212,245,60,0.15)` line)
+- Dots under the sweep flare to lime (`#d4f53c`) then fade
+- Blip dot at grid position (9,3) pulsing in lime
+- Center dot always lime
 
-<footer class="footer">
-  <div class="footer-logo">
-    <canvas id="footer-radar" width="22" height="22"></canvas>
-    <span class="footer-wordmark">devradar</span>
-    <span style="font-size:9px;color:#2e2e2e;margin-left:4px;letter-spacing:.06em">WikiThon 2025</span>
-  </div>
-  <div class="footer-links">
-    <span class="footer-link">github</span>
-    <span class="footer-link">vercel</span>
-    <span class="footer-link">backend</span>
-    <span class="footer-link">seed demo</span>
-  </div>
-</footer>
+Canvas size = `size` prop (default 28). Animation runs via
+`requestAnimationFrame`. Use a `useEffect` with cleanup to start/stop
+the animation loop when the component mounts/unmounts.
 
-<script>
-const LIME='#d4f53c',RING_C='#383830',CROSS_C='#232320',BG_DOT='#191917';
-const GRID=13,CX=6,CY=6;
+```jsx
+import { useEffect, useRef } from 'react'
 
-function drawRadar(canvas,size,angle,pulse,inv){
-  const ctx=canvas.getContext('2d');
-  ctx.clearRect(0,0,size,size);
-  const PAD=size*.07,AREA=size-PAD*2,CELL=AREA/(GRID-1),DR=Math.max(1,CELL*.32);
-  ctx.fillStyle=inv?'#e8e8e0':'#080808';
-  ctx.fillRect(0,0,size,size);
-  const ox=PAD,oy=PAD;
-  const sweep=((angle%(Math.PI*2))+Math.PI*2)%(Math.PI*2);
-  for(let gy=0;gy<GRID;gy++){
-    for(let gx=0;gx<GRID;gx++){
-      const px=ox+gx*CELL,py=oy+gy*CELL;
-      const dx=gx-CX,dy=gy-CY,dist=Math.sqrt(dx*dx+dy*dy);
-      if(dist>6.6)continue;
-      const isC=(gx===CX&&gy===CY);
-      const isB=(gx===9&&gy===3);
-      const isR=Math.abs(dist-2)<.58||Math.abs(dist-4)<.58||Math.abs(dist-6)<.58;
-      const isCr=(gx===CX||gy===CY)&&dist<=6.2;
-      let da=((Math.atan2(dy,dx)%(Math.PI*2))+Math.PI*2)%(Math.PI*2);
-      let trail=(sweep-da+Math.PI*2)%(Math.PI*2);
-      let sb=0;
-      if(!isC&&dist>.5){
-        if(trail<.1)sb=1;
-        else if(trail<1.4)sb=.9*(1-(trail-.1)/1.3);
+export function LogoMark({ size = 28 }) {
+  const ref = useRef(null)
+  useEffect(() => {
+    const canvas = ref.current
+    // — paste the full drawRadar() logic here —
+    // same algorithm as the landing page hero canvas
+    let angle = 0, pulse = 0
+    let raf
+    const loop = () => {
+      angle += 0.016
+      pulse += 0.065
+      drawRadar(canvas, size, angle, pulse, false)
+      raf = requestAnimationFrame(loop)
+    }
+    raf = requestAnimationFrame(loop)
+    return () => cancelAnimationFrame(raf)
+  }, [size])
+  return <canvas ref={ref} width={size} height={size} />
+}
+```
+
+Full `drawRadar(canvas, size, angle, pulse, inverted)` algorithm:
+
+```js
+const GRID = 13, CX = 6, CY = 6
+function drawRadar(canvas, size, angle, pulse, inv) {
+  const ctx = canvas.getContext('2d')
+  const PAD = size * 0.07
+  const AREA = size - PAD * 2
+  const CELL = AREA / (GRID - 1)
+  const DR = Math.max(1, CELL * 0.32)
+  ctx.fillStyle = inv ? '#e8e8e0' : '#080808'
+  ctx.fillRect(0, 0, size, size)
+  const ox = PAD, oy = PAD
+  const sweep = ((angle % (Math.PI*2)) + Math.PI*2) % (Math.PI*2)
+  for (let gy = 0; gy < GRID; gy++) {
+    for (let gx = 0; gx < GRID; gx++) {
+      const px = ox + gx * CELL, py = oy + gy * CELL
+      const dx = gx - CX, dy = gy - CY
+      const dist = Math.sqrt(dx*dx + dy*dy)
+      if (dist > 6.6) continue
+      const isC = gx === CX && gy === CY
+      const isB = gx === 9 && gy === 3
+      const isR = Math.abs(dist-2) < .58 || Math.abs(dist-4) < .58 || Math.abs(dist-6) < .58
+      const isCr = (gx === CX || gy === CY) && dist <= 6.2
+      const da = ((Math.atan2(dy,dx) % (Math.PI*2)) + Math.PI*2) % (Math.PI*2)
+      const trail = (sweep - da + Math.PI*2) % (Math.PI*2)
+      let sb = 0
+      if (!isC && dist > .5) {
+        if (trail < .1) sb = 1
+        else if (trail < 1.4) sb = .9 * (1 - (trail - .1) / 1.3)
       }
-      let color,alpha=1;
-      if(isC){color=LIME}
-      else if(isB){
-        const bp=Math.abs(Math.sin(pulse));
-        color=LIME;alpha=sb>.5?1:.25+bp*.75;
-      } else if(sb>0){
-        if(isR){const t=sb;color=`rgb(${Math.round(212*t+42*(1-t))},${Math.round(245*t+42*(1-t))},${Math.round(60*t+8*(1-t))})` }
-        else{color=`rgba(212,245,60,${sb*.45})`}
-      } else if(isR){color=inv?'#aaaaaa':RING_C}
-      else if(isCr){color=inv?'#cccccc':CROSS_C}
-      else{color=inv?'#dddddd':BG_DOT}
-      ctx.globalAlpha=alpha;
-      ctx.beginPath();ctx.arc(px,py,DR,0,Math.PI*2);
-      ctx.fillStyle=color;ctx.fill();
-      ctx.globalAlpha=1;
-    }
-  }
-  if(size>=48){
-    const ll=(GRID/2-.5)*CELL;
-    ctx.beginPath();
-    ctx.moveTo(ox+CX*CELL,oy+CY*CELL);
-    ctx.lineTo(ox+CX*CELL+Math.cos(sweep)*ll,oy+CY*CELL+Math.sin(sweep)*ll);
-    ctx.strokeStyle='rgba(212,245,60,0.15)';
-    ctx.lineWidth=Math.max(.5,size*.006);ctx.stroke();
-  }
-}
-
-function drawSmallIcon(canvas,size,angle,pulse,color){
-  const ctx=canvas.getContext('2d');
-  ctx.clearRect(0,0,size,size);
-  const c=size/2,r=size*.38;
-  ctx.fillStyle=color||LIME;
-  ctx.beginPath();ctx.arc(c,c,size*.08,0,Math.PI*2);ctx.fill();
-  const sweep=((angle%(Math.PI*2))+Math.PI*2)%(Math.PI*2);
-  [.38,.62,.88].forEach(f=>{
-    const ri=r*f;
-    for(let a=0;a<Math.PI*2;a+=Math.PI/6){
-      const x=c+Math.cos(a)*ri,y=c+Math.sin(a)*ri;
-      let da=((a%(Math.PI*2))+Math.PI*2)%(Math.PI*2);
-      let trail=(sweep-da+Math.PI*2)%(Math.PI*2);
-      let bright=trail<.15?1:trail<1.2?.8*(1-(trail-.15)/1.05):0;
-      const dr=size*.055;
-      const base=bright>0?LIME:'#2a2a28';
-      ctx.globalAlpha=bright>0?bright:.6;
-      ctx.beginPath();ctx.arc(x,y,dr,0,Math.PI*2);
-      ctx.fillStyle=base;ctx.fill();
-    }
-  });
-  ctx.globalAlpha=1;
-}
-
-const FONT={
-  D:[[1,1,1,0,0],[1,0,0,1,0],[1,0,0,0,1],[1,0,0,0,1],[1,0,0,0,1],[1,0,0,1,0],[1,1,1,0,0]],
-  E:[[1,1,1,1,1],[1,0,0,0,0],[1,0,0,0,0],[1,1,1,1,0],[1,0,0,0,0],[1,0,0,0,0],[1,1,1,1,1]],
-  V:[[1,0,0,0,1],[1,0,0,0,1],[1,0,0,0,1],[0,1,0,1,0],[0,1,0,1,0],[0,0,1,0,0],[0,0,1,0,0]],
-  R:[[1,1,1,1,0],[1,0,0,0,1],[1,0,0,0,1],[1,1,1,1,0],[1,0,1,0,0],[1,0,0,1,0],[1,0,0,0,1]],
-  A:[[0,0,1,0,0],[0,1,0,1,0],[1,0,0,0,1],[1,0,0,0,1],[1,1,1,1,1],[1,0,0,0,1],[1,0,0,0,1]]
-};
-const WORD='DEVRADAR'.split('');
-const STEP=12,CHAR_W=5*STEP,GAP=STEP;
-const TOTAL_W=WORD.length*CHAR_W+(WORD.length-1)*GAP;
-const TEXT_H=7*STEP;
-const PT=document.getElementById('pixel-text');
-const ptCtx=PT.getContext('2d');
-let dotReveal=new Array(WORD.length*5*7).fill(0);
-let revealFrame=0;
-
-function drawPixelText(angle,pulse){
-  ptCtx.clearRect(0,0,624,96);
-  const offX=(624-TOTAL_W)/2,offY=(96-TEXT_H)/2;
-  const sweep=((angle%(Math.PI*2))+Math.PI*2)%(Math.PI*2);
-  WORD.forEach((ch,ci)=>{
-    const rows=FONT[ch]||FONT.D;
-    const charX=offX+ci*(CHAR_W+GAP);
-    rows.forEach((row,ry)=>{
-      row.forEach((px,rx)=>{
-        const x=charX+rx*STEP+STEP/2;
-        const y=offY+ry*STEP+STEP/2;
-        const idx=(ci*35)+(ry*5+rx);
-        const revealed=dotReveal[idx];
-        const isLit=px===1;
-        if(isLit&&revealed<1){dotReveal[idx]=Math.min(1,revealed+.07);}
-        const alpha=isLit?dotReveal[idx]:.5;
-        let color;
-        if(isLit){
-          const ang=Math.atan2(y-48,x-312);
-          const da=((ang%(Math.PI*2))+Math.PI*2)%(Math.PI*2);
-          const trail=(sweep-da+Math.PI*2)%(Math.PI*2);
-          const sb=trail<.08?1:trail<1.5?.8*(1-(trail-.08)/1.42):0;
-          if(sb>.1){
-            const t=sb;
-            color=`rgb(${Math.round(212+40*t)},${Math.round(245*t+180*(1-t))},${Math.round(60*t)})`;
-          } else {
-            color=LIME;
-          }
+      let color, alpha = 1
+      if (isC) { color = '#d4f53c' }
+      else if (isB) {
+        const bp = Math.abs(Math.sin(pulse))
+        color = '#d4f53c'; alpha = sb > .5 ? 1 : .25 + bp * .75
+      } else if (sb > 0) {
+        if (isR) {
+          const t = sb
+          color = `rgb(${Math.round(212*t+42*(1-t))},${Math.round(245*t+42*(1-t))},${Math.round(60*t+8*(1-t))})`
         } else {
-          color='#1e1e1c';
+          color = `rgba(212,245,60,${sb * .45})`
         }
-        ptCtx.globalAlpha=alpha;
-        ptCtx.beginPath();ptCtx.arc(x,y,STEP*.34,0,Math.PI*2);
-        ptCtx.fillStyle=color;ptCtx.fill();
-        ptCtx.globalAlpha=1;
-      });
-    });
-  });
-  if(revealFrame<80){
-    const dotsToReveal=Math.floor(revealFrame*2.5);
-    for(let i=0;i<Math.min(dotsToReveal,dotReveal.length);i++){
-      if(dotReveal[i]<1){dotReveal[i]=Math.min(1,dotReveal[i]+.04);}
+      } else if (isR) { color = inv ? '#aaaaaa' : '#383830' }
+      else if (isCr) { color = inv ? '#cccccc' : '#232320' }
+      else { color = inv ? '#dddddd' : '#1e1e1c' }
+      ctx.globalAlpha = alpha
+      ctx.beginPath(); ctx.arc(px, py, DR, 0, Math.PI*2)
+      ctx.fillStyle = color; ctx.fill()
+      ctx.globalAlpha = 1
     }
-    revealFrame++;
+  }
+  if (size >= 48) {
+    const ll = (GRID / 2 - .5) * CELL
+    ctx.beginPath()
+    ctx.moveTo(ox + CX*CELL, oy + CY*CELL)
+    ctx.lineTo(ox + CX*CELL + Math.cos(sweep)*ll, oy + CY*CELL + Math.sin(sweep)*ll)
+    ctx.strokeStyle = 'rgba(212,245,60,0.15)'
+    ctx.lineWidth = Math.max(.5, size * .006)
+    ctx.stroke()
   }
 }
+```
 
-const heroR=document.getElementById('hero-radar');
-const navR=document.getElementById('nav-radar');
-const footR=document.getElementById('footer-radar');
-const i1=document.getElementById('icon1');
-const i2=document.getElementById('icon2');
-const i3=document.getElementById('icon3');
+**Export 2 — `<LogoText size="sm"|"md"|"lg" />` (pixel dot wordmark)**
 
-let ang=0,pls=0,fr=0;
-function loop(){
-  ang+=0.016;pls+=0.065;fr++;
-  drawRadar(heroR,200,ang,pls,false);
-  drawPixelText(ang,pls);
-  if(fr%2===0){
-    drawRadar(navR,28,ang,pls,false);
-    drawRadar(footR,22,ang,pls,false);
-  }
-  if(fr%4===0){
-    drawSmallIcon(i1,20,ang,pls,'#d4f53c');
-    drawSmallIcon(i2,20,ang+2.1,pls,'#d4f53c');
-    drawSmallIcon(i3,20,ang+4.2,pls,'#d4f53c');
-  }
-  requestAnimationFrame(loop);
+Renders "DEVRADAR" as dot-pixel art on a `<canvas>`.
+Each letter is a 5-column × 7-row binary grid.
+
+Pixel font data:
+```js
+const FONT = {
+  D: [[1,1,1,0,0],[1,0,0,1,0],[1,0,0,0,1],[1,0,0,0,1],[1,0,0,0,1],[1,0,0,1,0],[1,1,1,0,0]],
+  E: [[1,1,1,1,1],[1,0,0,0,0],[1,0,0,0,0],[1,1,1,1,0],[1,0,0,0,0],[1,0,0,0,0],[1,1,1,1,1]],
+  V: [[1,0,0,0,1],[1,0,0,0,1],[1,0,0,0,1],[0,1,0,1,0],[0,1,0,1,0],[0,0,1,0,0],[0,0,1,0,0]],
+  R: [[1,1,1,1,0],[1,0,0,0,1],[1,0,0,0,1],[1,1,1,1,0],[1,0,1,0,0],[1,0,0,1,0],[1,0,0,0,1]],
+  A: [[0,0,1,0,0],[0,1,0,1,0],[1,0,0,0,1],[1,0,0,0,1],[1,1,1,1,1],[1,0,0,0,1],[1,0,0,0,1]],
 }
-loop();
-</script>
+const WORD = 'DEVRADAR'.split('')
+```
+
+Size variants:
+- `sm` → step = 6px, dot radius = 1.8px  (nav bar, footer)
+- `md` → step = 9px, dot radius = 2.8px  (page headers)
+- `lg` → step = 12px, dot radius = 3.8px (landing hero)
+
+Compute canvas dimensions from step:
+```js
+const STEP = { sm: 6, md: 9, lg: 12 }[size] ?? 9
+const CHAR_W = 5 * STEP
+const GAP = STEP
+const W = WORD.length * CHAR_W + (WORD.length - 1) * GAP
+const H = 7 * STEP
+```
+
+Lit dots → `#d4f53c` (lime)
+Unlit dots → `#1e1e1c` (visible grid, not invisible)
+
+Animate: pass the shared `sweepAngle` so dots near the sweep arm
+briefly brighten — same formula as `drawRadar`.
+
+---
+
+### 2b. Use `<LogoMark>` and `<LogoText>` on every page
+
+Replace every existing logo/title reference across the app:
+
+| Location | Replace with |
+|---|---|
+| `App.jsx` nav bar | `<LogoMark size={28} />` + `"devradar"` wordmark text |
+| Landing page hero | `<LogoMark size={200} />` above `<LogoText size="lg" />` |
+| Page `<title>` (index.html) | already fixed — keep as is |
+| Sidebar header | `<LogoMark size={24} />` + `"devradar"` text |
+| Auth / onboarding screen | `<LogoMark size={64} />` + `<LogoText size="md" />` |
+| Footer | `<LogoMark size={22} />` + `"devradar"` text |
+| Tab favicon | already set in index.html — keep as is |
+| Any `<h1>` or `<title>` that says "DevRadar" or "devradar" as plain text | wrap with `<LogoText size="sm" />` where space allows, or keep text with monospace class |
+
+**Import pattern everywhere:**
+```jsx
+import { LogoMark, LogoText } from '../components/Logo'
+// or from wherever Logo.jsx lives relative to the file
+```
+
+---
+
+## CHANGE 3 — Replace 2025 → 2026 everywhere
+
+**Search and replace across the ENTIRE codebase:**
+
+```
+find: 2025
+replace: 2026
+```
+
+**Files to check specifically:**
+- `frontend/src/components/*.jsx` — any hardcoded year in UI text
+- `frontend/index.html` — meta description, OG tags
+- `backend/data/hackathons.json` — hackathon dates/years
+- `backend/data/startups.json` — any year references
+- `README.md` — WikiThon year, dates
+- Any copyright notice or footer text
+
+**Exceptions — do NOT change these:**
+- npm package versions that happen to contain "2025"
+- Git commit hashes
+- Any URL that contains "2025" as a path segment belonging to an external service
+- `claude-sonnet-4-20250514` model string — this is an API model ID, not a year reference
+
+---
+
+## CHANGE 4 — Ingest Chat / Roadmap Journey section
+
+**File:** wherever the "Ingest Chat" or "Roadmap Journey" feature is rendered.
+
+**Rule:** This section must render **below** the "Your Profile" section/component
+in the sidebar. Confirm the DOM order, not just visual order — use
+`order` CSS or reorder the JSX array directly.
+
+If this is a route-based sidebar (React Router), ensure the route link
+for Roadmap Journey is listed after the route link for Your Profile in
+the nav items array.
+
+---
+
+## CHANGE 5 — Landing page typography — desktop optimised
+
+**Problem:** All text on the landing page is too small for desktop viewport.
+Body text at 11–12px, section headings at 13–16px — these sizes work on
+mobile but feel microscopic on 1280px+ screens. Every font size needs
+to scale up for desktop readability.
+
+**File:** `frontend/src/pages/Landing.jsx`
+(or wherever the landing page JSX lives — could also be `App.jsx`
+if there is no separate landing page component)
+
+**Also update:** `frontend/index.css` or `tailwind.config.js` if base
+font sizes are set there globally.
+
+---
+
+### Desktop type scale — apply these exact sizes
+
+Use Tailwind responsive prefixes (`md:` = 768px+, `lg:` = 1024px+).
+Every size below has a mobile value and a desktop override.
+
+| Element | Mobile | Desktop (`lg:`) | Tailwind classes |
+|---|---|---|---|
+| Nav wordmark | 14px | 16px | `text-sm lg:text-base` |
+| Nav links / pills | 10px | 12px | `text-[10px] lg:text-xs` |
+| Hero tagline (above DEVRADAR) | 11px | 13px | `text-[11px] lg:text-[13px]` |
+| Hero subheading (below DEVRADAR) | 13px | 18px | `text-[13px] lg:text-lg` |
+| Hero body paragraph | 13px | 16px | `text-[13px] lg:text-base` |
+| CTA button text | 12px | 15px | `text-xs lg:text-[15px]` |
+| Stats numbers | 36px | 52px | `text-4xl lg:text-[52px]` |
+| Stats labels | 9px | 12px | `text-[9px] lg:text-xs` |
+| Section label (// label //) | 9px | 11px | `text-[9px] lg:text-[11px]` |
+| Section heading (h2) | 18px | 32px | `text-lg lg:text-[32px]` |
+| Section body paragraph | 12px | 15px | `text-xs lg:text-[15px]` |
+| Feature card title | 13px | 15px | `text-[13px] lg:text-[15px]` |
+| Feature card body | 11px | 13px | `text-[11px] lg:text-[13px]` |
+| Step number (01, 02...) | 24px | 36px | `text-2xl lg:text-4xl` |
+| Step title | 11px | 14px | `text-[11px] lg:text-sm` |
+| Step body | 10px | 13px | `text-[10px] lg:text-[13px]` |
+| Memory/Claude quote text | 11px | 14px | `text-[11px] lg:text-sm` |
+| Footer text | 10px | 13px | `text-[10px] lg:text-[13px]` |
+| Skill/stack tags | 11px | 13px | `text-[11px] lg:text-[13px]` |
+| URL / code snippets | 10px | 12px | `text-[10px] lg:text-xs` |
+
+---
+
+### Desktop spacing — increase breathing room at lg:
+
+Landing page sections feel cramped at desktop widths.
+Apply these padding/gap overrides:
+
+```jsx
+// Hero section
+// mobile: py-14    desktop: py-24
+className="py-14 lg:py-24"
+
+// Section wrappers (features, how-it-works, memory)
+// mobile: py-12    desktop: py-20
+className="py-12 lg:py-20 px-7 lg:px-16"
+
+// Feature card grid
+// mobile: gap-3    desktop: gap-5
+className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 lg:gap-5 mt-8 lg:mt-12"
+
+// Feature card internal padding
+// mobile: p-5      desktop: p-7
+className="... p-5 lg:p-7"
+
+// Step grid
+// mobile: gap-3    desktop: gap-5
+className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-5"
+
+// Stat numbers — give them more vertical padding
+// mobile: py-7     desktop: py-10
+className="... py-7 lg:py-10"
+
+// CTA button padding
+// mobile: px-7 py-3   desktop: px-10 py-4
+className="... px-7 py-3 lg:px-10 lg:py-4"
+
+// Max content width — constrain to readable width on ultra-wide
+// Wrap main content in: max-w-7xl mx-auto
+```
+
+---
+
+### Desktop max-width container
+
+Wrap every landing page section's inner content in a max-width
+container to prevent lines stretching too wide on large monitors:
+
+```jsx
+// Add this wrapper inside every <section>:
+<div className="max-w-6xl mx-auto px-6 lg:px-12">
+  {/* section content */}
+</div>
+```
+
+Hero section gets a narrower container for text (centred):
+```jsx
+<div className="max-w-3xl mx-auto text-center">
+  {/* tagline, subheading, CTAs */}
+</div>
+```
+
+---
+
+### Line height and letter spacing — desktop overrides
+
+```jsx
+// Hero subheading — tighter tracking on large sizes
+className="... lg:tracking-tight lg:leading-tight"
+
+// Body paragraphs — more leading at larger sizes
+className="... lg:leading-relaxed"
+
+// Section headings — tighten tracking as size increases
+className="... lg:tracking-[-0.03em]"
+
+// // section label // — keep wide tracking at all sizes
+className="... tracking-[0.1em] lg:tracking-[0.14em]"
+```
+
+---
+
+### LogoMark size on desktop hero — make it bigger
+
+The animated radar on the landing page hero should be larger on desktop:
+
+```jsx
+// mobile: 160px    desktop: 240px
+<LogoMark size={isMobile ? 160 : 240} />
+
+// Or use CSS transform to scale the canvas on desktop:
+<div className="w-40 h-40 lg:w-60 lg:h-60 lg:scale-100">
+  <LogoMark size={240} />
+</div>
+```
+
+LogoText (DEVRADAR pixel art) — add an `xl` size variant:
+- `xl` → step = 16px, dot radius = 5px (landing hero desktop)
+
+```js
+const STEP = { sm: 6, md: 9, lg: 12, xl: 16 }[size] ?? 9
+```
+
+Use `<LogoText size="xl" />` on desktop hero,
+`<LogoText size="lg" />` on mobile hero.
+
+---
+
+## IMPLEMENTATION ORDER
+
+Apply changes in this sequence to avoid merge conflicts:
+
+```
+1. Create frontend/src/components/Logo.jsx  (new file)
+2. Update App.jsx                           (import + use LogoMark)
+3. Update Sidebar.jsx                       (reorder nav items)
+4. Update all other components              (import + use LogoMark/LogoText)
+5. Update Landing page — all type sizes + spacing (Change 5)
+6. Update tailwind.config.js                (add xl LogoText step)
+7. Global find-replace 2025 → 2026
+8. Verify backend/data/ JSON files
+9. Run: npm run dev — check no console errors at 1280px+ viewport
+10. Commit: git add . && git commit -m "feat: shared logo, sidebar reorder, desktop typography, 2026 update"
+11. Push:  git push origin feat/necto-mono-theme
+```
+
+---
+
+## VERIFICATION CHECKLIST
+
+After implementing, confirm:
+
+- [ ] `<LogoMark>` animates on every page — nav, sidebar, footer, landing
+- [ ] `<LogoText>` shows DEVRADAR in dot pixels on landing hero
+- [ ] Sidebar: "Your Profile" comes before "Roadmap Journey"
+- [ ] No page shows plain text "DevRadar" as a heading where logo should be
+- [ ] No instance of "2025" remains in UI-visible text
+- [ ] `hackathons.json` dates updated to 2026
+- [ ] Landing page at 1280px — all text is comfortably readable (no squinting)
+- [ ] Landing page at 375px — text is not oversized, still fits on screen
+- [ ] Hero DEVRADAR pixel text is large and crisp at desktop width
+- [ ] Section headings hit 28–32px on desktop, not 16–18px
+- [ ] CTA buttons have generous padding — not tiny on desktop
+- [ ] `npm run build` completes with no errors
+- [ ] `npm run dev` — all pages load, logo animates, no console errors
+
+---
+
+*Codebase: DevRadar · React 18 + Vite + Tailwind CSS*
+*Theme: Necto Mono dark — #0f0f0f · #d4f53c · JetBrains Mono*
+*WikiThon 2026*
