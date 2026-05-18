@@ -1,1125 +1,1031 @@
-# DevRadar — Catppuccin Theme + Opening Screen Prompt
-### Mocha flavor · LLM Wiki inspired opening · Career knowledge graph
+# DevRadar — End-to-End Testing Prompt
+### Local testing · Groq API (free) · Claude Browser navigation
 
-Paste this into Claude to apply Catppuccin Mocha theme throughout DevRadar.
+---
+
+## PART 1 — BEFORE TESTING: MISSING FEATURES TO BUILD
+
+These are missing right now. Build them first, then test.
+
+---
+
+### MISSING FEATURE 1 — Skill Selection UI
+
+Currently: User types skills manually in a text input.
+Problem: No visual skill picker, no categories, no "currently learning" vs "know well".
+
+Build this in OpeningScreen.jsx:
+
+```
+SKILL SELECTION — THREE STATES:
+
+State 1: Know well (solid filled)
+State 2: Currently learning (half filled / dashed border)
+State 3: Not selected (empty)
+
+Click once → Know well (blue filled)
+Click twice → Currently learning (blue dashed)
+Click thrice → Deselect
+
+Show skills in categories:
+
+CATEGORY: Frontend
+  React, Vue.js, Next.js, TypeScript, JavaScript, Tailwind CSS, HTML/CSS
+
+CATEGORY: Backend
+  Node.js, Python, Java, Go, Django, FastAPI, Express.js
+
+CATEGORY: Database
+  PostgreSQL, MongoDB, MySQL, Redis, Firebase
+
+CATEGORY: DevOps & Cloud
+  Docker, AWS, Linux, Git, Kubernetes, CI/CD
+
+CATEGORY: Other
+  DSA, System Design, REST APIs, GraphQL, Machine Learning
+
+UI for each skill button:
+  Inactive:
+    border: 1px solid var(--ctp-surface2)
+    background: transparent
+    color: var(--ctp-overlay1)
+    padding: 6px 14px, border-radius: 8px, font-size: 12px
+
+  Know well (state 1):
+    border: 1px solid var(--ctp-blue)
+    background: rgba(137,180,250,0.15)
+    color: var(--ctp-blue)
+    Small ✓ icon left
+
+  Currently learning (state 2):
+    border: 1px dashed var(--ctp-yellow)
+    background: rgba(249,226,175,0.1)
+    color: var(--ctp-yellow)
+    Small ⏳ icon left
+
+Store in state:
+  { know_well: ["React", "Node.js"], learning: ["TypeScript", "Docker"] }
+
+Send both to backend on submit.
+```
+
+---
+
+### MISSING FEATURE 2 — What User Is Looking For
+
+Currently: Simple goal buttons (Internship, Job, Hackathon, Freelance).
+Problem: Too generic. Need more context.
+
+Add these fields to OpeningScreen after goal selection:
+
+```
+FIELD 1 — Target Role (text input, optional):
+  Placeholder: "e.g. Frontend Developer, Full Stack, ML Engineer"
+  This helps Claude give more specific gap analysis
+
+FIELD 2 — Target Companies (multi-select chips, optional):
+  Show pre-loaded list: Razorpay, Groww, CRED, Zepto, Meesho, CRED, etc.
+  User can select up to 3
+  These become priority in gap analysis and roadmap
+
+FIELD 3 — Timeline (slider or buttons):
+  How soon are you looking?
+  [ Immediately ] [ 1-3 months ] [ 3-6 months ] [ Just exploring ]
+
+FIELD 4 — Learning style preference:
+  [ Video courses ] [ Documentation ] [ Projects ] [ All of the above ]
+  This affects what resources Claude recommends in roadmap
+
+Store all in user profile and send to backend.
+Add to /api/user/init body:
+  {
+    stack: skills.know_well,
+    learning_stack: skills.learning,
+    experience,
+    goals,
+    target_role: "Frontend Developer",
+    target_companies: ["razorpay", "groww"],
+    timeline: "1-3 months",
+    learning_style: "video"
+  }
+```
+
+---
+
+### MISSING FEATURE 3 — Groq API Integration
+
+Replace Claude API with Groq (free) for local testing.
+
+Create backend/groq.js:
+
+```javascript
+const fetch = require('node-fetch');
+
+const GROQ_API_KEY = process.env.GROQ_API_KEY;
+const GROQ_BASE_URL = 'https://api.groq.com/openai/v1/chat/completions';
+const MODEL = 'llama-3.3-70b-versatile'; // Free, fast, good quality
+
+async function groqChat(systemPrompt, userMessage, maxTokens = 1000) {
+  try {
+    const response = await fetch(GROQ_BASE_URL, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${GROQ_API_KEY}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        model: MODEL,
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: userMessage }
+        ],
+        max_tokens: maxTokens,
+        temperature: 0.3
+      })
+    });
+    const data = await response.json();
+    return data.choices?.[0]?.message?.content || '';
+  } catch (error) {
+    console.error('[Groq] Error:', error.message);
+    return null;
+  }
+}
+
+async function ingestStep1(rawInput, existingWikiSummary, userStack) {
+  const system = `You are analyzing career data for an Indian developer.
+Student stack: ${JSON.stringify(userStack)}.
+Respond ONLY with valid JSON. No extra text. No markdown fences.`;
+
+  const user = `Analyze this career data:
+${rawInput}
+
+Return JSON:
+{
+  "companies_found": [{"name":"","role":"","skills_required":[],"salary_range":"","location":"","interview_topics":[],"match_with_student":0,"missing_skills":[]}],
+  "hackathons_found": [{"name":"","deadline":"","skills_needed":[],"prize":"","platform":"","match_with_student":0}],
+  "skills_identified": [{"name":"","student_has":false,"reason":""}],
+  "gaps_identified": [{"skill":"","companies_needing_it":[],"learning_time_weeks":0,"difficulty":""}],
+  "wiki_pages_to_create": [{"key":"","title":"","type":""}],
+  "summary": ""
+}`;
+
+  const result = await groqChat(system, user, 1500);
+  try {
+    return JSON.parse(result.replace(/```json|```/g, '').trim());
+  } catch {
+    return { companies_found: [], hackathons_found: [], skills_identified: [], gaps_identified: [], wiki_pages_to_create: [], summary: 'Parse failed' };
+  }
+}
+
+async function ingestStep2GeneratePage(pageInfo, analysis, userStack) {
+  const system = `Generate a career wiki page in markdown with YAML frontmatter.
+Include [[wikilinks]] to related pages.
+Respond ONLY with markdown. No extra text.`;
+
+  const user = `Generate wiki page:
+Key: ${pageInfo.key}
+Type: ${pageInfo.type}
+Title: ${pageInfo.title}
+Data: ${JSON.stringify(analysis).slice(0, 1000)}
+Student stack: ${JSON.stringify(userStack)}`;
+
+  return await groqChat(system, user, 800) ||
+    `---\ntype: ${pageInfo.type}\ntitle: ${pageInfo.title}\n---\n\n# ${pageInfo.title}`;
+}
+
+async function queryWiki(question, wikiPages, userContext) {
+  const pagesContext = wikiPages.slice(0, 8).map((p, i) =>
+    `[${i+1}] ${p.key}:\n${(p.content || '').slice(0, 400)}`
+  ).join('\n\n---\n\n');
+
+  const system = `You are DevRadar AI for Indian developers.
+User: ${JSON.stringify(userContext)}.
+Answer from wiki. Cite sources as [1][2]. Be specific and actionable.`;
+
+  const answer = await groqChat(system,
+    `Wiki:\n${pagesContext}\n\nQuestion: ${question}`, 1000);
+
+  const citations = wikiPages.slice(0, 8).map((p, i) => ({
+    index: i + 1, key: p.key, preview: (p.content || '').slice(0, 80)
+  }));
+
+  return { answer: answer || 'Could not process.', citations };
+}
+
+async function generateRoadmap(userStack, gapPages, companyPages, hackathonPages) {
+  const system = `Generate a week-by-week career roadmap for Indian developer.
+Include real URLs for resources. Respond ONLY with valid JSON. No markdown fences.`;
+
+  const user = `Stack: ${JSON.stringify(userStack)}
+Gaps: ${JSON.stringify(gapPages.slice(0,3).map(p=>p.key))}
+Companies: ${companyPages.slice(0,3).map(p=>p.key).join(', ')}
+Hackathons: ${hackathonPages.slice(0,3).map(p=>p.key).join(', ')}
+
+Return JSON:
+{
+  "weeks": [{"week_range":"Week 1-2","focus_skill":"TypeScript","why":"","daily_time_hours":2,"resources":[{"type":"video","title":"","url":""}],"hackathon_to_target":"","milestone":""}],
+  "immediate_hackathons": [{"name":"","deadline":"","match":0,"register_url":""}],
+  "company_readiness": [{"company":"","ready_in":"","after_skill":""}],
+  "overall_timeline_weeks": 8
+}`;
+
+  const result = await groqChat(system, user, 1500);
+  try {
+    return JSON.parse(result.replace(/```json|```/g, '').trim());
+  } catch {
+    return { weeks: [], immediate_hackathons: [], company_readiness: [], overall_timeline_weeks: 8 };
+  }
+}
+
+module.exports = { groqChat, ingestStep1, ingestStep2GeneratePage, queryWiki, generateRoadmap };
+```
+
+Add to .env:
+```
+GROQ_API_KEY=your_groq_key_here
+```
+
+Get free key from: console.groq.com (free, no credit card needed)
+
+In server.js replace claude requires with groq:
+```javascript
+const { ingestStep1, ingestStep2GeneratePage, queryWiki, generateRoadmap } = require('./groq');
+```
+
+---
+
+## PART 2 — DEMO DATA FOR TESTING
+
+Use this exact data throughout all tests.
+
+```
+TEST USER — ARJUN:
+  name: Arjun Sharma
+  stack know_well: ["React", "Node.js", "Python"]
+  stack learning: ["TypeScript", "Docker"]
+  experience: beginner
+  goals: ["internship", "hackathon"]
+  target_role: Frontend Developer
+  target_companies: ["razorpay", "groww"]
+  timeline: 1-3 months
+  learning_style: video
+  userId: test_user_arjun_001 (store in localStorage)
+
+DEMO JOB DESCRIPTION TO PASTE (Razorpay):
+---
+Senior Frontend Engineer — Razorpay
+Location: Bangalore (Hybrid)
+Experience: 1-2 years
+
+We are looking for a frontend engineer to join our payments team.
+
+Requirements:
+  - Strong React experience (hooks, context, performance optimization)
+  - TypeScript proficiency — strict mode preferred
+  - GraphQL basics
+  - Understanding of system design
+  - REST API integration experience
+
+Nice to have:
+  - PostgreSQL basics
+  - Redis knowledge
+  - Docker for local dev
+
+Salary: 15-25 LPA
+Interview process: 4 rounds
+  Round 1: DSA (Arrays, Trees — Leetcode medium)
+  Round 2: System Design (for freshers — basic)
+  Round 3: React deep dive (custom hooks, optimization)
+  Round 4: HR + culture fit
+
+About Razorpay: India's leading payment gateway. Fast paced fintech.
+Apply: careers.razorpay.com
+---
+
+DEMO URL TO FETCH:
+  https://devfolio.co/hackathons (Devfolio hackathon listing)
+  OR
+  https://unstop.com/hackathons (Unstop listing)
+
+DEMO SCREENSHOT:
+  Take screenshot of any LinkedIn job post visible on screen
+  Or use a saved image of a job description
+
+DEMO CHAT QUESTIONS:
+  Q1: "Which hackathon should I register for right now?"
+  Q2: "Am I ready for Razorpay? What's missing?"
+  Q3: "What should I learn this week?"
+  Q4: "Compare Groww vs Razorpay for my profile"
+  Q5: "How long before I can apply to CRED?"
+```
+
+---
+
+## PART 3 — LOCAL SETUP BEFORE TESTING
+
+Run these commands before starting tests:
+
+```bash
+# Terminal 1 — Backend
+cd devradar/backend
+npm install
+cp .env.example .env
+# Add GROQ_API_KEY to .env
+node server.js
+# Should see: DevRadar Backend running on port 3001
+
+# Terminal 2 — Frontend
+cd devradar/frontend
+npm install
+npm run dev
+# Should see: Local: http://localhost:5173
+
+# Terminal 3 — Seed demo data
+cd devradar/backend
+node seed-demo.js
+# Should see: Demo user seeded
+```
+
+Verify backend is working:
+```bash
+curl http://localhost:3001/api/health
+# Expected: { status: "ok", hydradb: "active", ai: "groq" }
+```
+
+---
+
+## PART 4 — CLAUDE BROWSER TESTING PROMPT
+
+Paste this into Claude with browser access enabled.
+Browser should be pointed at: http://localhost:5173
 
 ---
 
 ```
-Apply Catppuccin Mocha theme to all DevRadar frontend files.
-Also create a new polished opening/onboarding screen
-inspired by LLM Wiki's landing pattern, adapted for DevRadar's career niche.
+You are testing DevRadar end-to-end — a personal career knowledge base
+for Indian developers built with React frontend, Node.js backend,
+Groq AI (Llama 3.3), and HydraDB memory.
+
+App is running locally at http://localhost:5173
+Backend is at http://localhost:3001
+
+Test user profile:
+  Name: Arjun
+  Stack: React, Node.js, Python (know well) + TypeScript, Docker (learning)
+  Goal: Frontend Developer internship + hackathons
+  Target: Razorpay, Groww
+
+After each flow write exactly:
+  FLOW [N] — [name]: PASS or FAIL
+  If fail: what exactly failed, what was expected vs actual
+
+Screenshot after each major screen change.
 
 ---
 
-CATPPUCCIN MOCHA — FULL PALETTE
+FLOW 1 — OPENING SCREEN
 
-Paste this as CSS variables at the top of index.css:
+Navigate to http://localhost:5173
 
-:root {
-  /* Catppuccin Mocha — Base */
-  --ctp-rosewater: #F5E0DC;
-  --ctp-flamingo:  #F2CDCD;
-  --ctp-pink:      #F5C2E7;
-  --ctp-mauve:     #CBA6F7;
-  --ctp-red:       #F38BA8;
-  --ctp-maroon:    #EBA0AC;
-  --ctp-peach:     #FAB387;
-  --ctp-yellow:    #F9E2AF;
-  --ctp-green:     #A6E3A1;
-  --ctp-teal:      #94E2D5;
-  --ctp-sky:       #89DCEB;
-  --ctp-sapphire:  #74C7EC;
-  --ctp-blue:      #89B4FA;
-  --ctp-lavender:  #B4BEFE;
+CHECK THESE ELEMENTS EXIST:
+  DevRadar logo/wordmark visible
+  WikiThon 2025 badge in mauve/purple
+  Floating colored circles in background
+  "Build your career graph" heading
+  Three feature pills: Career Graph, Ask Anything, Roadmap
+  Skill category sections: Frontend, Backend, Database, DevOps, Other
+  Experience selector: Beginner, Intermediate, Advanced
+  Goal buttons: Internship, Job, Hackathon, Freelance
+  Target role text input
+  Target companies multi-select
+  Timeline selector
+  CTA button: "Start → Build Career Graph" (disabled initially)
 
-  /* Catppuccin Mocha — Text */
-  --ctp-text:      #CDD6F4;
-  --ctp-subtext1:  #BAC2DE;
-  --ctp-subtext0:  #A6ADC8;
-
-  /* Catppuccin Mocha — Overlay */
-  --ctp-overlay2:  #9399B2;
-  --ctp-overlay1:  #7F849C;
-  --ctp-overlay0:  #6C7086;
-
-  /* Catppuccin Mocha — Surface */
-  --ctp-surface2:  #585B70;
-  --ctp-surface1:  #45475A;
-  --ctp-surface0:  #313244;
-
-  /* Catppuccin Mocha — Base */
-  --ctp-base:      #1E1E2E;
-  --ctp-mantle:    #181825;
-  --ctp-crust:     #11111B;
-}
-
----
-
-DESIGN SYSTEM USING CATPPUCCIN MOCHA
-
-Page background:       var(--ctp-base)       #1E1E2E
-Sidebar background:    var(--ctp-mantle)     #181825
-Card background:       var(--ctp-surface0)   #313244
-Card hover:            var(--ctp-surface1)   #45475A
-Input background:      var(--ctp-surface0)   #313244
-Border default:        var(--ctp-surface1)   #45475A
-Border active:         var(--ctp-mauve)      #CBA6F7
-Border subtle:         var(--ctp-surface0)   #313244
-
-Text primary:          var(--ctp-text)       #CDD6F4
-Text secondary:        var(--ctp-subtext1)   #BAC2DE
-Text muted:            var(--ctp-overlay1)   #7F849C
-Text placeholder:      var(--ctp-overlay0)   #6C7086
-
-Accent primary:        var(--ctp-mauve)      #CBA6F7
-Accent hover:          var(--ctp-lavender)   #B4BEFE
-Accent light bg:       rgba(203,166,247,0.1)
-
-Success:               var(--ctp-green)      #A6E3A1
-Success bg:            rgba(166,227,161,0.1)
-Warning:               var(--ctp-yellow)     #F9E2AF
-Warning bg:            rgba(249,226,175,0.1)
-Danger:                var(--ctp-red)        #F38BA8
-Danger bg:             rgba(243,139,168,0.1)
-Info:                  var(--ctp-blue)       #89B4FA
-Info bg:               rgba(137,180,250,0.1)
-
-Shadow:
-  card:   0 2px 8px rgba(17,17,27,0.4)
-  panel:  0 4px 20px rgba(17,17,27,0.6)
-  glow:   0 0 20px rgba(203,166,247,0.15)
-
----
-
-GRAPH NODE COLORS (Catppuccin palette)
-
-User center node:      var(--ctp-yellow)     #F9E2AF  ← warm, stands out
-Companies:             var(--ctp-peach)      #FAB387  ← orange warmth
-Skills known:          var(--ctp-blue)       #89B4FA  ← calm blue
-Skills gap:            var(--ctp-red)        #F38BA8  ← soft red not harsh
-Hackathons:            var(--ctp-mauve)      #CBA6F7  ← signature catppuccin
-Concepts:              var(--ctp-teal)       #94E2D5  ← teal accent
-
-Edge colors:
-Known skill edge:      var(--ctp-blue)       opacity 0.5
-Gap edge dashed:       var(--ctp-red)        opacity 0.4
-Hackathon edge:        var(--ctp-mauve)      opacity 0.4
-Default edge:          var(--ctp-surface2)   opacity 0.6
-
----
-
-OPENING SCREEN — LLM WIKI INSPIRED
-
-Create a new file: frontend/src/components/OpeningScreen.jsx
-
-This is shown BEFORE the user enters their stack.
-It replaces the plain StackInput as the very first thing they see.
-
-LLM Wiki inspiration:
-  - Clean centered content
-  - Logo prominent at top
-  - Short punchy description
-  - Visual preview hint (graph nodes floating in bg)
-  - One clear CTA
-
-DevRadar adaptation:
-  - Career focused copy
-  - Show the three outputs (graph, chat, roadmap) as feature pills
-  - Indian developer context in the copy
-
-OPENING SCREEN LAYOUT:
-
-Full viewport, background: var(--ctp-base) #1E1E2E
-
-Subtle background effect:
-  Floating colored circles, very low opacity, absolute positioned
-  Like graph nodes floating behind the content
-  Use CSS animation: slow float up and down (10-15s loop)
-  Colors from catppuccin palette, opacity 0.06
-
-  Example circles (position absolute, pointer-events none):
-    circle 1: 320px, ctp-peach, top 10%, left 5%, opacity 0.05
-    circle 2: 240px, ctp-mauve, top 60%, left 80%, opacity 0.06
-    circle 3: 180px, ctp-blue, top 30%, right 10%, opacity 0.05
-    circle 4: 280px, ctp-teal, bottom 15%, left 30%, opacity 0.04
-
-Center card (max-width 480px, centered):
-  Background: var(--ctp-mantle) #181825
-  Border: 1px solid var(--ctp-surface1)
-  Border-radius: 16px
-  Padding: 48px 40px
-  Box-shadow: panel shadow + subtle mauve glow
-
-  TOP SECTION:
-    Logo row:
-      Small colored squares stacked (like graph nodes) — decorative
-      Three squares: ctp-peach 8px, ctp-blue 8px, ctp-mauve 8px
-      Gap 4px, inline
-    
-    App name: "DevRadar"
-      Font: 28px, weight 700, color: var(--ctp-text)
-      Letter-spacing: -0.5px
-    
-    Tagline: "Your personal career knowledge base"
-      Font: 14px, color: var(--ctp-subtext1)
-      Margin-top: 4px
-    
-    Hackathon badge:
-      "WikiThon 2025"
-      Background: rgba(203,166,247,0.15)
-      Border: 1px solid rgba(203,166,247,0.3)
-      Color: var(--ctp-mauve)
-      Padding: 3px 10px, border-radius: 999px, font-size: 11px
-      Margin-top: 12px, display inline-block
-
-  DIVIDER:
-    1px solid var(--ctp-surface1), margin: 24px 0
-
-  MIDDLE SECTION — What it does:
-    Heading: "Build your career graph"
-      Font: 20px, weight 600, color: var(--ctp-text)
-    
-    Subtext: "Feed job descriptions, LinkedIn posts, or screenshots.
-              DevRadar extracts career insights and builds a
-              personal knowledge graph — powered by HydraDB memory."
-      Font: 13px, color: var(--ctp-subtext0)
-      Line-height: 1.6, margin-top: 8px
-
-    Feature pills row (margin-top 16px):
-      Three small pills in a row:
-      
-      Pill 1: "🗺  Career Graph"
-        Background: rgba(137,180,250,0.1)
-        Border: 1px solid rgba(137,180,250,0.25)
-        Color: var(--ctp-blue)
-      
-      Pill 2: "💬  Ask Anything"
-        Background: rgba(166,227,161,0.1)
-        Border: 1px solid rgba(166,227,161,0.25)
-        Color: var(--ctp-green)
-      
-      Pill 3: "📍  Roadmap"
-        Background: rgba(250,179,135,0.1)
-        Border: 1px solid rgba(250,179,135,0.25)
-        Color: var(--ctp-peach)
-      
-      Each pill: padding 5px 12px, border-radius 999px, font-size 12px
-
-  DIVIDER: same as above
-
-  BOTTOM SECTION — Stack Input (inline, no separate page):
-    
-    Label: "What's your current tech stack?"
-      Font: 13px, weight 500, color: var(--ctp-subtext1)
-      Margin-bottom: 8px
-
-    Tag input container:
-      Background: var(--ctp-surface0)
-      Border: 1px solid var(--ctp-surface1)
-      Border-radius: 10px
-      Padding: 8px
-      Min-height: 72px
-      On focus: border-color var(--ctp-mauve)
-      Transition: 150ms
-
-      Skill tags inside:
-        Background: rgba(203,166,247,0.2)
-        Border: 1px solid rgba(203,166,247,0.4)
-        Color: var(--ctp-mauve)
-        Padding: 3px 10px, border-radius: 999px, font-size: 12px
-        × button: color var(--ctp-overlay1), hover var(--ctp-red)
-
-      Input inside container:
-        Background: transparent, border: none
-        Color: var(--ctp-text), font-size: 13px
-        Placeholder color: var(--ctp-overlay0)
-
-    Experience row (margin-top 12px):
-      Label: "Experience" 12px var(--ctp-overlay1)
-      Three buttons: Beginner · Intermediate · Advanced
-      
-      Inactive button:
-        Border: 1px solid var(--ctp-surface2)
-        Background: transparent
-        Color: var(--ctp-subtext0)
-        Padding: 6px 14px, border-radius: 6px, font-size: 12px
-      
-      Active button:
-        Border: 1px solid var(--ctp-mauve)
-        Background: rgba(203,166,247,0.15)
-        Color: var(--ctp-mauve)
-
-    Goal row (margin-top 8px):
-      Label: "Looking for" 12px var(--ctp-overlay1)
-      Four toggle buttons: Internship · Job · Hackathon · Freelance
-      Same inactive/active style as experience
-
-    CTA button (margin-top 20px):
-      Full width, height: 44px
-      Background: var(--ctp-mauve)
-      Color: var(--ctp-base) — dark text on mauve button
-      Border-radius: 10px, font-size: 14px, font-weight: 600
-      Letter-spacing: -0.2px
-      Hover: background var(--ctp-lavender), slight scale(1.01)
-      Loading: "Building your graph..." with subtle spinner
-      Disabled: opacity 0.4, cursor not-allowed
-      No border
-
-    Footer text below button:
-      "Powered by HydraDB · Claude AI · WikiThon 2025"
-      Font: 11px, color: var(--ctp-overlay0), text-align: center
-      Margin-top: 12px
-
-ANIMATION for opening screen:
-  Card fades in from translateY(8px) opacity 0 to translateY(0) opacity 1
-  Duration: 400ms, easing: cubic-bezier(0.16, 1, 0.3, 1)
-  Background circles float with:
-    @keyframes float {
-      0%, 100% { transform: translateY(0px); }
-      50% { transform: translateY(-20px); }
-    }
-    Each circle has different animation-duration (12s, 15s, 10s, 18s)
-    and animation-delay (0s, 2s, 4s, 1s)
-
----
-
-SIDEBAR — CATPPUCCIN MOCHA
-
-Background: var(--ctp-mantle) #181825
-Right border: 1px solid var(--ctp-surface0)
-
-Logo section:
-  "DevRadar" — font 15px weight 700 color var(--ctp-text)
-  "WikiThon 2025" badge:
-    Background: rgba(203,166,247,0.15)
-    Color: var(--ctp-mauve), font-size: 10px
-    Border: 1px solid rgba(203,166,247,0.25)
-    Padding: 2px 8px, border-radius: 999px
-
-Nav items:
-  Height: 36px, padding: 0 12px, border-radius: 8px
-  Font: 13px, color: var(--ctp-subtext0)
-  Icon + label gap: 8px
+ACTIONS:
+  Click "React" in Frontend category — verify it turns blue (know well)
+  Click "React" again — verify it turns yellow dashed (learning)
+  Click "React" again — verify it deselects
+  Click "React" once more — set to know well (blue)
   
-  Hover: background var(--ctp-surface0), color var(--ctp-text)
+  Now select these skills:
+    Know well (click once): React, Node.js, Python
+    Learning (click twice): TypeScript, Docker
   
-  Active:
-    Background: rgba(203,166,247,0.12)
-    Color: var(--ctp-mauve)
-    Left border: 2px solid var(--ctp-mauve)
-    Font-weight: 500
-
-Wiki section headers:
-  Font: 10px uppercase, letter-spacing: 0.8px
-  Color: var(--ctp-overlay0)
-  Padding: 0 12px
-
-Wiki entity items:
-  Same as nav items but smaller (font 12px, height 28px)
-  Color: var(--ctp-subtext0)
-  Hover: background var(--ctp-surface0), color var(--ctp-text)
-
-Count badges:
-  Companies: background rgba(250,179,135,0.15) color var(--ctp-peach)
-  Skills: background rgba(137,180,250,0.15) color var(--ctp-blue)
-  Hackathons: background rgba(203,166,247,0.15) color var(--ctp-mauve)
-  Gaps: background rgba(243,139,168,0.15) color var(--ctp-red)
-
-Bottom status:
-  Text: var(--ctp-overlay0), font 11px
-  Green dot: #A6E3A1 (ctp-green), pulse animation
-
----
-
-TOPBAR — CATPPUCCIN MOCHA
-
-Background: var(--ctp-mantle)
-Bottom border: 1px solid var(--ctp-surface0)
-Height: 48px
-
-Current view title: var(--ctp-text), 14px weight 600
-
-Stack pills:
-  Background: rgba(137,180,250,0.12)
-  Border: 1px solid rgba(137,180,250,0.2)
-  Color: var(--ctp-blue)
-  Padding: 2px 10px, border-radius: 999px, font-size: 11px
-
----
-
-CAREER GRAPH — CATPPUCCIN MOCHA
-
-Canvas background: var(--ctp-base) #1E1E2E
-
-vis-network / sigma config:
-  Font color: var(--ctp-text) #CDD6F4
-  Font stroke: var(--ctp-base) #1E1E2E (for readability)
-  Edge default: var(--ctp-surface2) #585B70, opacity 0.7
+  Click "Beginner" experience
+  Click "Internship" goal
+  Click "Hackathon" goal (both should be active)
   
-  Node shadow: color #11111B, enabled true
+  Type "Frontend Developer" in target role field
+  Click "Razorpay" in target companies
+  Click "Groww" in target companies
   
-  Node groups:
-    user:      background #F9E2AF (ctp-yellow), border #F5E0DC
-    companies: background #FAB387 (ctp-peach), border #EBA0AC
-    skills:    background #89B4FA (ctp-blue), border #74C7EC
-    gaps:      background #F38BA8 (ctp-red), border #EBA0AC, dashes [4,2]
-    hackathons:background #CBA6F7 (ctp-mauve), border #B4BEFE
-
-Tooltip (vis-network override):
-  .vis-tooltip {
-    background: var(--ctp-surface0) !important;
-    border: 1px solid var(--ctp-surface2) !important;
-    border-radius: 8px !important;
-    color: var(--ctp-text) !important;
-    font-family: Inter, sans-serif !important;
-    font-size: 12px !important;
-    padding: 8px 12px !important;
-    box-shadow: 0 4px 20px rgba(17,17,27,0.6) !important;
-  }
-
-Node legend:
-  Background: var(--ctp-surface0)
-  Border: 1px solid var(--ctp-surface1)
-  Border-radius: 8px
-  Color: var(--ctp-subtext1)
-  Title: var(--ctp-overlay1) 10px uppercase
-
-Minimap:
-  Background: var(--ctp-mantle)
-  Border: 1px solid var(--ctp-surface0)
-
----
-
-DETAIL PANEL — CATPPUCCIN MOCHA
-
-Background: var(--ctp-mantle)
-Left border: 1px solid var(--ctp-surface0)
-Box-shadow: -4px 0 20px rgba(17,17,27,0.5)
-
-Header:
-  Border-bottom: 1px solid var(--ctp-surface0)
-  Type badge colors:
-    companies: bg rgba(250,179,135,0.15) color ctp-peach border rgba(250,179,135,0.25)
-    skills:    bg rgba(137,180,250,0.15) color ctp-blue border rgba(137,180,250,0.25)
-    gaps:      bg rgba(243,139,168,0.15) color ctp-red border rgba(243,139,168,0.25)
-    hackathons:bg rgba(203,166,247,0.15) color ctp-mauve border rgba(203,166,247,0.25)
-
-Close button: color var(--ctp-overlay1), hover ctp-red
-
-Section dividers: 1px solid var(--ctp-surface0)
-Section headers: var(--ctp-overlay0), 10px uppercase
-
-Content text: var(--ctp-text)
-Secondary text: var(--ctp-subtext1)
-
-Skill pills:
-  Known: bg rgba(166,227,161,0.15) border rgba(166,227,161,0.3) color ctp-green
-  Missing: bg rgba(243,139,168,0.15) border rgba(243,139,168,0.3) color ctp-red
-
-Company chips:
-  bg ctp-surface0, border ctp-surface1, color ctp-text
-  hover: bg ctp-surface1
-
-Action buttons:
-  Primary: bg ctp-mauve, color ctp-base, hover bg ctp-lavender
-  Secondary: border ctp-surface2, color ctp-subtext1, hover bg ctp-surface0
-
----
-
-INGEST PANEL — CATPPUCCIN MOCHA
-
-Background: var(--ctp-base)
-Max-width: 640px, centered
-
-Title: var(--ctp-text) 22px weight 700
-Subtitle: var(--ctp-subtext0) 13px
-
-Tab switcher:
-  Container: bg ctp-surface0, border-radius 10px, padding 4px
-  Active tab: bg ctp-surface1, color ctp-text, border-radius 8px, shadow
-  Inactive tab: color ctp-overlay1, hover color ctp-subtext0
-
-Textarea / URL input:
-  Background: var(--ctp-surface0)
-  Border: 1px solid var(--ctp-surface1)
-  Color: var(--ctp-text)
-  Placeholder: var(--ctp-overlay0)
-  Border-radius: 10px, padding: 12px
-  Focus: border-color var(--ctp-mauve), outline none
-
-Upload area:
-  Border: 2px dashed var(--ctp-surface2)
-  Color: var(--ctp-overlay1)
-  Border-radius: 10px
-  Hover: border-color var(--ctp-mauve)
-
-Process button: same as CTA — ctp-mauve background, ctp-base text
-
-Activity log:
-  Background: var(--ctp-surface0)
-  Border: 1px solid var(--ctp-surface1)
-  Border-radius: 8px
-  Time text: var(--ctp-overlay0)
-  Message text: var(--ctp-subtext1)
-
-Success result:
-  Background: rgba(166,227,161,0.08)
-  Border: 1px solid rgba(166,227,161,0.25)
-  Color: var(--ctp-green)
-
-Error:
-  Background: rgba(243,139,168,0.08)
-  Border: 1px solid rgba(243,139,168,0.25)
-  Color: var(--ctp-red)
-
----
-
-CHAT INTERFACE — CATPPUCCIN MOCHA
-
-Background: var(--ctp-base)
-
-User message bubble:
-  Background: var(--ctp-mauve)
-  Color: var(--ctp-base)
-  Border-radius: 16px 16px 4px 16px
-
-Assistant message bubble:
-  Background: var(--ctp-surface0)
-  Border: 1px solid var(--ctp-surface1)
-  Color: var(--ctp-text)
-  Border-radius: 16px 16px 16px 4px
-
-Citation chips:
-  Background: var(--ctp-surface1)
-  Border: 1px solid var(--ctp-surface2)
-  Color: var(--ctp-subtext1)
-  Font: 11px mono
-
-Suggestion buttons:
-  Border: 1px solid var(--ctp-surface2)
-  Color: var(--ctp-blue)
-  Background: rgba(137,180,250,0.05)
-  Hover: background rgba(137,180,250,0.12)
-
-Input bar:
-  Background: var(--ctp-mantle)
-  Border-top: 1px solid var(--ctp-surface0)
-  Input field: bg ctp-surface0, border ctp-surface1, color ctp-text
-  Focus border: ctp-mauve
-  Send button: bg ctp-mauve, color ctp-base
-
-Typing dots: color var(--ctp-mauve)
-
----
-
-ROADMAP VIEW — CATPPUCCIN MOCHA
-
-Background: var(--ctp-base)
-
-Immediate hackathon banner:
-  Background: rgba(250,179,135,0.08)
-  Border: 1px solid rgba(250,179,135,0.25)
-  Title: var(--ctp-peach)
-
-Week cards:
-  Border: 1px solid var(--ctp-surface1)
-  Border-radius: 12px
+  Click "1-3 months" timeline
   
-  Header section:
-    Background: var(--ctp-surface0)
-    Color: var(--ctp-text)
+  Verify CTA button is now enabled (not grayed out)
   
-  Body section:
-    Background: var(--ctp-mantle)
+  Click "Start → Build Career Graph"
+  Verify button shows loading state "Building your graph..."
+  Wait for navigation to main app
   
-  Resource icons:
-    📖 docs: var(--ctp-sapphire)
-    🎥 video: var(--ctp-red)
-    🛠 practice: var(--ctp-green)
-    📝 blog: var(--ctp-yellow)
+VERIFY after submit:
+  localStorage has devradar_userId set
+  No console errors
+  Navigation to graph view happens within 5 seconds
+
+Screenshot: opening screen with all skills selected.
+Screenshot: loading state.
+
+---
+
+FLOW 2 — MAIN LAYOUT LOAD
+
+After navigation, verify three-zone layout:
+
+SIDEBAR (left, ~240px wide):
+  DevRadar wordmark visible
+  WikiThon 2025 badge
+  Nav items: Career Graph, Feed Data, Ask Anything, Roadmap, My Journey
+  Career Graph is active (mauve color, left border)
+  Wiki sections: Companies (0), Skills (0), Hackathons (0), Gaps (0)
+  All wiki sections show "Feed data to populate" (empty)
+  Bottom: HydraDB active green dot
+
+TOPBAR (top, ~48px):
+  "Career Graph" title
+  Stack pills: React, Node.js, Python in blue
+
+GRAPH AREA (center):
+  Graph canvas visible (dark catppuccin background)
+  One yellow center node "You" visible
+  Empty graph message visible
+  Node legend visible in bottom left:
+    Yellow dot: You
+    Blue dot: Skills you know
+    Red dot: Skills to learn
+    Orange dot: Companies
+    Purple dot: Hackathons
+
+VERIFY:
+  No console errors
+  All three zones render properly
+  Colors match Catppuccin Mocha palette
+
+Screenshot: full main layout.
+
+---
+
+FLOW 3 — INGEST: TEXT PASTE
+
+Click "Feed Data" in sidebar.
+Verify IngestPanel loads.
+
+CHECK UI:
+  Three tabs: Paste Text, Enter URL, Upload Image
+  "Paste Text" tab is active by default
+  Large textarea visible
+  "Process & Add to Career Wiki" button visible
+
+ACTION — Paste the Razorpay job description:
+  Click in textarea
+  Paste this exact text:
   
-  Resource links: color var(--ctp-blue), hover underline
+  "Senior Frontend Engineer — Razorpay
+  Location: Bangalore (Hybrid)
+  Requirements: React, TypeScript, GraphQL, System Design
+  Salary: 15-25 LPA
+  Interview: 4 rounds — DSA, System Design, React deep dive, HR"
   
-  Hackathon target pill:
-    Background: rgba(203,166,247,0.1)
-    Border: 1px solid rgba(203,166,247,0.2)
-    Color: var(--ctp-mauve)
+  Click "Process & Add to Career Wiki"
+
+VERIFY DURING PROCESSING:
+  Button shows "Processing..."
+  Activity log appears below button
+  Log shows: "Reading text content..."
+  Log shows: "Running analysis (Step 1)..."
+  Log shows: "Extracting companies, skills, hackathons..."
+  Log shows: "Generating wiki pages (Step 2)..."
+  Log shows: "Created X wiki pages"
+  Log shows: "Done!"
+
+VERIFY SUCCESS RESULT:
+  Green success box appears
+  Shows: "Successfully processed"
+  Shows: "1 companies found" (Razorpay)
+  Shows: "2+ gaps identified" (TypeScript, GraphQL)
+  Shows: "0 hackathons found"
+  Shows wiki pages created list
+
+VERIFY SIDEBAR UPDATED:
+  Companies section: shows "razorpay" (count badge: 1)
+  Skills section: new skills appeared
+  Gaps section: TypeScript, GraphQL appeared
+
+Click "Career Graph" in sidebar.
+VERIFY GRAPH UPDATED:
+  Orange node "Razorpay" appeared
+  Red nodes for TypeScript, GraphQL appeared (gaps)
+  Blue nodes for React, Node.js (skills Arjun knows)
+  Edges connecting Razorpay to skills
+
+Screenshot: ingest panel with success result.
+Screenshot: graph after ingest with new nodes.
+
+---
+
+FLOW 4 — INGEST: URL
+
+Go back to "Feed Data"
+Click "Enter URL" tab
+
+VERIFY:
+  URL input field visible
+  Platform hint badges: linkedin.com/jobs, devfolio.co, unstop.com, hackerearth.com
+
+ACTION:
+  Type: https://devfolio.co/hackathons
+  Click "Process & Add to Career Wiki"
+
+VERIFY:
+  Processing activity log runs
+  Success or graceful error if URL blocks fetch
   
-  Milestone text: var(--ctp-overlay1), border-top ctp-surface0
+  If success: hackathon nodes appear in graph
+  If error (blocked): shows "Could not fetch URL. Try pasting the content instead."
+  
+  Either way — no crash, no console error
 
-Company readiness section:
-  Background: var(--ctp-surface0)
-  Border: 1px solid var(--ctp-surface1)
-  Color: var(--ctp-text)
-
----
-
-JOURNEY VIEW — CATPPUCCIN MOCHA
-
-Background: var(--ctp-base)
-
-Stats grid cards:
-  Background: var(--ctp-surface0)
-  Border: 1px solid var(--ctp-surface1)
-  Number: var(--ctp-text) 24px bold
-  Label: var(--ctp-overlay0) 11px
-
-Timeline vertical line: var(--ctp-surface1)
-
-Timeline dots:
-  companies: var(--ctp-peach) #FAB387
-  skills: var(--ctp-blue) #89B4FA
-  gaps: var(--ctp-red) #F38BA8
-  hackathons: var(--ctp-mauve) #CBA6F7
-  default: var(--ctp-overlay0)
-
-Event label: var(--ctp-text) 13px
-Event time: var(--ctp-overlay0) 11px
+Screenshot: URL tab with URL entered.
 
 ---
 
-MEMORY BADGE — CATPPUCCIN MOCHA
+FLOW 5 — INGEST: SCREENSHOT
 
-Background: rgba(249,226,175,0.06)
-Border-bottom: 1px solid rgba(249,226,175,0.15)
-Left section icon + text: var(--ctp-yellow) #F9E2AF
+Go back to "Feed Data"
+Click "Upload Image" tab
 
-Message text: var(--ctp-subtext1)
+VERIFY:
+  Dashed upload area visible with camera icon
+  "PNG, JPG, JPEG supported" text
+  Click triggers file picker
 
-Urgent pills:
-  Red (< 3 days): bg rgba(243,139,168,0.15) color ctp-red border rgba(243,139,168,0.3)
-  Orange (< 7 days): bg rgba(250,179,135,0.15) color ctp-peach border rgba(250,179,135,0.3)
+ACTION:
+  Take a screenshot of any job posting visible on screen
+  Save as test-job.jpg
+  Upload via the file picker
 
-Bottom bar text: var(--ctp-overlay0) 11px
-HydraDB active dot: var(--ctp-green) pulse animation
+VERIFY:
+  File name appears after selection
+  Click "Process & Add to Career Wiki"
+  Activity log shows: "Reading image..."
+  Processing completes
+  New wiki pages created from image content
 
----
-
-SCROLLBAR STYLING
-
-::-webkit-scrollbar { width: 6px; height: 6px; }
-::-webkit-scrollbar-track { background: var(--ctp-base); }
-::-webkit-scrollbar-thumb {
-  background: var(--ctp-surface2);
-  border-radius: 999px;
-}
-::-webkit-scrollbar-thumb:hover { background: var(--ctp-overlay0); }
+Screenshot: upload tab with file selected.
 
 ---
 
-SELECTION COLOR
+FLOW 6 — GRAPH INTERACTION
 
-::selection {
-  background: rgba(203,166,247,0.3);
-  color: var(--ctp-text);
-}
+Click "Career Graph" in sidebar.
 
----
+VERIFY graph has nodes from previous ingests.
 
-TYPOGRAPHY
+ACTION — Click Razorpay node (orange):
+  Click the orange Razorpay node in graph
 
-Font: Inter from Google Fonts (already installed)
-All text uses catppuccin variables — no hardcoded colors
-Line-height: 1.6 for body text
-Monospace: JetBrains Mono or system-mono for code/citations
+VERIFY:
+  Razorpay node gets highlighted (white border)
+  Other nodes fade to 20% opacity
+  Razorpay's connected edges fully visible
+  DetailPanel slides in from right
+  
+  DetailPanel shows:
+    "STARTUP" badge in peach/orange
+    "Razorpay" title
+    Match percentage with progress bar
+    Skills section: React ✓ (green), Node.js ✓ (green), TypeScript ✗ (red)
+    Salary: 15-25 LPA
+    Location: Bangalore
+    Interview topics
+    "Apply" button (mauve)
+    "Save to Watchlist" button
 
----
+ACTION — Click TypeScript red node:
+  Click the red TypeScript node
 
-RESPONSIVE CATPPUCCIN ADJUSTMENTS
+VERIFY DetailPanel:
+  "GAP SKILL" badge in red
+  "TypeScript" title
+  "Not in your stack" badge
+  "WHY YOU NEED THIS" section with Razorpay chip
+  Learning path: 2 weeks, Beginner friendly
+  Resource link
+  "Mark as Learned" button
 
-Mobile bottom tab bar:
-  Background: var(--ctp-mantle)
-  Top border: 1px solid var(--ctp-surface0)
-  Active tab: color var(--ctp-mauve)
-  Inactive tab: color var(--ctp-overlay1)
+ACTION — Click background (empty area):
+  Click empty area of graph
 
-Mobile detail panel (bottom sheet):
-  Background: var(--ctp-mantle)
-  Drag handle: var(--ctp-surface2)
-  Border-radius top: 16px
+VERIFY:
+  All nodes return to full opacity
+  DetailPanel closes
+  No errors
 
----
+ACTION — Click You (yellow center node):
+  Click the amber/yellow center node
 
-COMPLETE index.css FILE
+VERIFY DetailPanel:
+  YOUR PROFILE section
+  Stack pills: React, Node.js, Python
+  HydraDB Memory section with timeline events
+  Stats grid
+  "Edit Stack" button
 
-Replace existing index.css with:
-
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
-
-:root {
-  --ctp-rosewater: #F5E0DC;
-  --ctp-flamingo:  #F2CDCD;
-  --ctp-pink:      #F5C2E7;
-  --ctp-mauve:     #CBA6F7;
-  --ctp-red:       #F38BA8;
-  --ctp-maroon:    #EBA0AC;
-  --ctp-peach:     #FAB387;
-  --ctp-yellow:    #F9E2AF;
-  --ctp-green:     #A6E3A1;
-  --ctp-teal:      #94E2D5;
-  --ctp-sky:       #89DCEB;
-  --ctp-sapphire:  #74C7EC;
-  --ctp-blue:      #89B4FA;
-  --ctp-lavender:  #B4BEFE;
-  --ctp-text:      #CDD6F4;
-  --ctp-subtext1:  #BAC2DE;
-  --ctp-subtext0:  #A6ADC8;
-  --ctp-overlay2:  #9399B2;
-  --ctp-overlay1:  #7F849C;
-  --ctp-overlay0:  #6C7086;
-  --ctp-surface2:  #585B70;
-  --ctp-surface1:  #45475A;
-  --ctp-surface0:  #313244;
-  --ctp-base:      #1E1E2E;
-  --ctp-mantle:    #181825;
-  --ctp-crust:     #11111B;
-}
-
-* { box-sizing: border-box; margin: 0; padding: 0; }
-
-body {
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-  background: var(--ctp-base);
-  color: var(--ctp-text);
-  -webkit-font-smoothing: antialiased;
-  line-height: 1.6;
-}
-
-::selection { background: rgba(203,166,247,0.3); color: var(--ctp-text); }
-
-::-webkit-scrollbar { width: 5px; height: 5px; }
-::-webkit-scrollbar-track { background: var(--ctp-base); }
-::-webkit-scrollbar-thumb { background: var(--ctp-surface2); border-radius: 999px; }
-::-webkit-scrollbar-thumb:hover { background: var(--ctp-overlay0); }
-
-.vis-tooltip {
-  background: var(--ctp-surface0) !important;
-  border: 1px solid var(--ctp-surface2) !important;
-  border-radius: 8px !important;
-  color: var(--ctp-text) !important;
-  font-family: 'Inter', sans-serif !important;
-  font-size: 12px !important;
-  padding: 8px 12px !important;
-  box-shadow: 0 4px 20px rgba(17,17,27,0.6) !important;
-}
-
-@keyframes float {
-  0%, 100% { transform: translateY(0px); }
-  50% { transform: translateY(-20px); }
-}
-
-@keyframes pulse-dot {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.4; }
-}
-
-@keyframes fade-up {
-  from { opacity: 0; transform: translateY(8px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-
-.animate-fade-up { animation: fade-up 400ms cubic-bezier(0.16,1,0.3,1) forwards; }
-.animate-pulse-dot { animation: pulse-dot 2s ease-in-out infinite; }
+Screenshot: graph with Razorpay node selected and detail panel open.
+Screenshot: graph with TypeScript gap node selected.
 
 ---
 
-OPENING SCREEN COMPONENT
+FLOW 7 — SIDEBAR NAVIGATION
 
-Create frontend/src/components/OpeningScreen.jsx:
+Click "Razorpay" in Companies section of sidebar.
 
-import { useState, useRef, useEffect } from "react";
-import axios from "axios";
+VERIFY:
+  Graph view activates
+  Razorpay node gets focused/highlighted
+  DetailPanel opens with Razorpay details
+  Same as clicking the node directly
 
-const API = import.meta.env.VITE_API_URL || "http://localhost:3001";
+Click "TypeScript" in Gaps section of sidebar.
 
-const SKILL_SUGGESTIONS = [
-  "React", "Node.js", "Python", "TypeScript", "JavaScript",
-  "Go", "Java", "Docker", "PostgreSQL", "MongoDB",
-  "AWS", "GraphQL", "Next.js", "Vue.js", "Django"
-];
+VERIFY:
+  TypeScript node focused in graph
+  DetailPanel shows gap details
 
-export default function OpeningScreen({ onComplete }) {
-  const [skills, setSkills] = useState([]);
-  const [input, setInput] = useState("");
-  const [suggestions, setSuggestions] = useState([]);
-  const [experience, setExperience] = useState("beginner");
-  const [goals, setGoals] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const inputRef = useRef(null);
+Click different nav items:
+  "Ask Anything" — ChatInterface loads
+  "Roadmap" — RoadmapView loads
+  "My Journey" — JourneyView loads
+  "Feed Data" — IngestPanel loads
+  "Career Graph" — graph loads
 
-  const handleInput = (val) => {
-    setInput(val);
-    if (val.trim().length > 0) {
-      const matches = SKILL_SUGGESTIONS.filter(s =>
-        s.toLowerCase().includes(val.toLowerCase()) && !skills.includes(s)
-      );
-      setSuggestions(matches.slice(0, 5));
-    } else {
-      setSuggestions([]);
-    }
-  };
+VERIFY each view loads without errors.
 
-  const addSkill = (skill) => {
-    if (skill && !skills.includes(skill) && skills.length < 15) {
-      setSkills([...skills, skill]);
-    }
-    setInput("");
-    setSuggestions([]);
-    inputRef.current?.focus();
-  };
-
-  const removeSkill = (skill) => setSkills(skills.filter(s => s !== skill));
-
-  const toggleGoal = (goal) => {
-    setGoals(prev => prev.includes(goal) ? prev.filter(g => g !== goal) : [...prev, goal]);
-  };
-
-  const handleKeyDown = (e) => {
-    if ((e.key === "Enter" || e.key === ",") && input.trim()) {
-      e.preventDefault();
-      addSkill(input.trim().replace(",", ""));
-    }
-  };
-
-  const handleSubmit = async () => {
-    if (skills.length === 0) return;
-    setLoading(true);
-    try {
-      const res = await axios.post(`${API}/api/user/init`, {
-        stack: skills,
-        experience,
-        goals
-      });
-      localStorage.setItem("devradar_userId", res.data.userId);
-      onComplete({ userId: res.data.userId, stack: skills, experience, goals });
-    } catch (err) {
-      console.error("Init failed:", err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const EXPERIENCES = ["Beginner", "Intermediate", "Advanced"];
-  const GOALS = ["Internship", "Job", "Hackathon", "Freelance"];
-
-  return (
-    <div className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden"
-         style={{ background: "var(--ctp-base)" }}>
-
-      {/* Floating background circles */}
-      {[
-        { size: 320, color: "var(--ctp-peach)", top: "10%", left: "5%", delay: "0s", dur: "12s" },
-        { size: 240, color: "var(--ctp-mauve)", top: "60%", left: "80%", delay: "2s", dur: "15s" },
-        { size: 180, color: "var(--ctp-blue)", top: "30%", right: "8%", delay: "4s", dur: "10s" },
-        { size: 280, color: "var(--ctp-teal)", bottom: "15%", left: "30%", delay: "1s", dur: "18s" },
-      ].map((c, i) => (
-        <div key={i} className="absolute rounded-full pointer-events-none"
-             style={{
-               width: c.size, height: c.size,
-               background: c.color, opacity: 0.05,
-               top: c.top, left: c.left, right: c.right, bottom: c.bottom,
-               animation: `float ${c.dur} ease-in-out ${c.delay} infinite`,
-               filter: "blur(40px)"
-             }} />
-      ))}
-
-      {/* Main card */}
-      <div className="animate-fade-up relative z-10 w-full max-w-md rounded-2xl p-10"
-           style={{
-             background: "var(--ctp-mantle)",
-             border: "1px solid var(--ctp-surface1)",
-             boxShadow: "0 4px 20px rgba(17,17,27,0.6), 0 0 40px rgba(203,166,247,0.05)"
-           }}>
-
-        {/* Logo */}
-        <div className="flex items-center gap-3 mb-1">
-          <div className="flex gap-1">
-            {["var(--ctp-peach)", "var(--ctp-blue)", "var(--ctp-mauve)"].map((c, i) => (
-              <div key={i} className="w-2.5 h-2.5 rounded-sm"
-                   style={{ background: c, opacity: 0.9 }} />
-            ))}
-          </div>
-          <span className="text-xl font-bold tracking-tight"
-                style={{ color: "var(--ctp-text)" }}>DevRadar</span>
-        </div>
-
-        <p className="text-sm mb-3" style={{ color: "var(--ctp-subtext0)" }}>
-          Your personal career knowledge base
-        </p>
-
-        <div className="inline-block text-xs px-2.5 py-1 rounded-full mb-6"
-             style={{
-               background: "rgba(203,166,247,0.12)",
-               border: "1px solid rgba(203,166,247,0.25)",
-               color: "var(--ctp-mauve)"
-             }}>
-          WikiThon 2025
-        </div>
-
-        {/* Divider */}
-        <div className="mb-6" style={{ borderTop: "1px solid var(--ctp-surface0)" }} />
-
-        {/* Description */}
-        <h2 className="text-lg font-semibold mb-2" style={{ color: "var(--ctp-text)" }}>
-          Build your career graph
-        </h2>
-        <p className="text-xs mb-4 leading-relaxed" style={{ color: "var(--ctp-subtext0)" }}>
-          Feed job descriptions, LinkedIn posts, or screenshots.
-          DevRadar extracts insights and builds a personal knowledge graph
-          powered by HydraDB memory.
-        </p>
-
-        {/* Feature pills */}
-        <div className="flex gap-2 mb-6 flex-wrap">
-          {[
-            { label: "🗺  Career Graph", color: "var(--ctp-blue)", bg: "rgba(137,180,250,0.1)", border: "rgba(137,180,250,0.25)" },
-            { label: "💬  Ask Anything", color: "var(--ctp-green)", bg: "rgba(166,227,161,0.1)", border: "rgba(166,227,161,0.25)" },
-            { label: "📍  Roadmap", color: "var(--ctp-peach)", bg: "rgba(250,179,135,0.1)", border: "rgba(250,179,135,0.25)" },
-          ].map(p => (
-            <span key={p.label} className="text-xs px-3 py-1.5 rounded-full"
-                  style={{ color: p.color, background: p.bg, border: `1px solid ${p.border}` }}>
-              {p.label}
-            </span>
-          ))}
-        </div>
-
-        {/* Divider */}
-        <div className="mb-5" style={{ borderTop: "1px solid var(--ctp-surface0)" }} />
-
-        {/* Stack input */}
-        <label className="block text-xs font-medium mb-2"
-               style={{ color: "var(--ctp-subtext1)" }}>
-          What's your current tech stack?
-        </label>
-
-        <div className="relative">
-          <div className="flex flex-wrap gap-1.5 p-2 rounded-xl min-h-16 cursor-text"
-               style={{
-                 background: "var(--ctp-surface0)",
-                 border: `1px solid ${skills.length > 0 ? "var(--ctp-mauve)" : "var(--ctp-surface1)"}`,
-                 transition: "border-color 150ms"
-               }}
-               onClick={() => inputRef.current?.focus()}>
-            {skills.map(skill => (
-              <span key={skill} className="flex items-center gap-1 text-xs px-2.5 py-1 rounded-full"
-                    style={{
-                      background: "rgba(203,166,247,0.18)",
-                      border: "1px solid rgba(203,166,247,0.35)",
-                      color: "var(--ctp-mauve)"
-                    }}>
-                {skill}
-                <button onClick={() => removeSkill(skill)}
-                        className="ml-0.5 hover:opacity-70 leading-none"
-                        style={{ color: "var(--ctp-overlay1)" }}>×</button>
-              </span>
-            ))}
-            <input ref={inputRef} value={input}
-                   onChange={e => handleInput(e.target.value)}
-                   onKeyDown={handleKeyDown}
-                   placeholder={skills.length === 0 ? "Type a skill and press Enter..." : ""}
-                   className="flex-1 min-w-24 bg-transparent border-none outline-none text-xs"
-                   style={{ color: "var(--ctp-text)" }} />
-          </div>
-
-          {/* Autocomplete dropdown */}
-          {suggestions.length > 0 && (
-            <div className="absolute top-full left-0 right-0 mt-1 rounded-xl overflow-hidden z-20"
-                 style={{
-                   background: "var(--ctp-surface0)",
-                   border: "1px solid var(--ctp-surface1)",
-                   boxShadow: "0 4px 20px rgba(17,17,27,0.6)"
-                 }}>
-              {suggestions.map(s => (
-                <button key={s} onClick={() => addSkill(s)}
-                        className="w-full text-left text-xs px-3 py-2.5 hover:opacity-80 transition-opacity"
-                        style={{ color: "var(--ctp-text)", background: "transparent" }}>
-                  {s}
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
-
-        {/* Experience */}
-        <div className="mt-4">
-          <label className="text-xs mb-2 block" style={{ color: "var(--ctp-overlay1)" }}>
-            Experience level
-          </label>
-          <div className="flex gap-2">
-            {EXPERIENCES.map(e => (
-              <button key={e} onClick={() => setExperience(e.toLowerCase())}
-                      className="flex-1 text-xs py-1.5 rounded-lg transition-all"
-                      style={{
-                        background: experience === e.toLowerCase()
-                          ? "rgba(203,166,247,0.15)" : "transparent",
-                        border: `1px solid ${experience === e.toLowerCase()
-                          ? "var(--ctp-mauve)" : "var(--ctp-surface2)"}`,
-                        color: experience === e.toLowerCase()
-                          ? "var(--ctp-mauve)" : "var(--ctp-subtext0)"
-                      }}>
-                {e}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* Goals */}
-        <div className="mt-3">
-          <label className="text-xs mb-2 block" style={{ color: "var(--ctp-overlay1)" }}>
-            Looking for
-          </label>
-          <div className="flex gap-2 flex-wrap">
-            {GOALS.map(g => (
-              <button key={g} onClick={() => toggleGoal(g.toLowerCase())}
-                      className="text-xs px-3 py-1.5 rounded-lg transition-all"
-                      style={{
-                        background: goals.includes(g.toLowerCase())
-                          ? "rgba(203,166,247,0.15)" : "transparent",
-                        border: `1px solid ${goals.includes(g.toLowerCase())
-                          ? "var(--ctp-mauve)" : "var(--ctp-surface2)"}`,
-                        color: goals.includes(g.toLowerCase())
-                          ? "var(--ctp-mauve)" : "var(--ctp-subtext0)"
-                      }}>
-                {g}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* CTA */}
-        <button onClick={handleSubmit}
-                disabled={skills.length === 0 || loading}
-                className="w-full mt-6 py-3 rounded-xl text-sm font-semibold transition-all"
-                style={{
-                  background: skills.length === 0 ? "var(--ctp-surface1)" : "var(--ctp-mauve)",
-                  color: skills.length === 0 ? "var(--ctp-overlay0)" : "var(--ctp-base)",
-                  cursor: skills.length === 0 ? "not-allowed" : "pointer",
-                  opacity: loading ? 0.7 : 1,
-                  letterSpacing: "-0.2px"
-                }}>
-          {loading ? "Building your graph..." : "Start → Build Career Graph"}
-        </button>
-
-        <p className="text-center mt-3 text-xs" style={{ color: "var(--ctp-overlay0)" }}>
-          Powered by HydraDB · Claude AI · WikiThon 2025
-        </p>
-      </div>
-    </div>
-  );
-}
+Screenshot: sidebar with companies and gaps populated.
 
 ---
 
-RETURNING USER SCREEN
+FLOW 8 — CHAT INTERFACE
 
-If userId exists in localStorage, show a different opening:
+Click "Ask Anything" in sidebar.
 
-Create frontend/src/components/ReturningScreen.jsx:
+VERIFY:
+  Chat interface loads
+  Empty state: "Ask anything about your career"
+  4 suggestion buttons visible with catppuccin styling
+  Input bar at bottom
 
-export default function ReturningScreen({ returnContext, onContinue }) {
-  return (
-    <div className="min-h-screen flex items-center justify-center p-4"
-         style={{ background: "var(--ctp-base)" }}>
+ACTION — Click suggestion "Which hackathon should I register for right now?":
 
-      {/* Same floating circles as OpeningScreen */}
+VERIFY:
+  Message appears in chat as user bubble (mauve background, dark text)
+  Loading dots appear (mauve dots)
+  Response arrives within 10 seconds
+  Response is in assistant bubble (surface0 background)
+  Response mentions actual hackathons if ingest found any
+  OR says to feed more data first if wiki is empty
+  Citation chips visible below response
 
-      <div className="animate-fade-up relative z-10 w-full max-w-sm rounded-2xl p-8 text-center"
-           style={{
-             background: "var(--ctp-mantle)",
-             border: "1px solid var(--ctp-surface1)",
-             boxShadow: "0 4px 20px rgba(17,17,27,0.6)"
-           }}>
+ACTION — Type custom question:
+  "Am I ready for Razorpay? What's missing?"
+  Press Enter or click Send
 
-        <div className="text-3xl mb-4">🧠</div>
+VERIFY:
+  Smooth chat flow
+  Answer references Razorpay data from wiki
+  Mentions TypeScript as gap (if ingest was done)
+  Citations reference wiki pages
 
-        <h2 className="text-lg font-semibold mb-2"
-            style={{ color: "var(--ctp-text)" }}>
-          Welcome back
-        </h2>
+ACTION — Ask another:
+  "What should I learn this week?"
 
-        <p className="text-sm mb-4 leading-relaxed"
-           style={{ color: "var(--ctp-subtext0)" }}>
-          {returnContext?.message || "HydraDB remembers your career journey."}
-        </p>
+VERIFY:
+  Specific recommendation based on gaps found
+  References time estimates
+  Mentions relevant hackathon if available
 
-        {returnContext?.urgentItems?.length > 0 && (
-          <div className="flex flex-wrap gap-2 justify-center mb-4">
-            {returnContext.urgentItems.map((item, i) => (
-              <span key={i} className="text-xs px-3 py-1 rounded-full"
-                    style={{
-                      background: item.daysLeft < 3
-                        ? "rgba(243,139,168,0.15)" : "rgba(250,179,135,0.15)",
-                      border: `1px solid ${item.daysLeft < 3
-                        ? "rgba(243,139,168,0.3)" : "rgba(250,179,135,0.3)"}`,
-                      color: item.daysLeft < 3
-                        ? "var(--ctp-red)" : "var(--ctp-peach)"
-                    }}>
-                {item.name} · {item.daysLeft}d left
-              </span>
-            ))}
-          </div>
-        )}
-
-        <button onClick={onContinue}
-                className="w-full py-3 rounded-xl text-sm font-semibold"
-                style={{ background: "var(--ctp-mauve)", color: "var(--ctp-base)" }}>
-          Continue →
-        </button>
-
-        <div className="mt-3 flex items-center justify-center gap-1.5">
-          <div className="w-1.5 h-1.5 rounded-full animate-pulse-dot"
-               style={{ background: "var(--ctp-green)" }} />
-          <span className="text-xs" style={{ color: "var(--ctp-overlay0)" }}>
-            HydraDB memory loaded
-          </span>
-        </div>
-      </div>
-    </div>
-  );
-}
+Screenshot: chat with 2-3 messages and citations visible.
 
 ---
 
-APP.JSX FLOW UPDATE
+FLOW 9 — ROADMAP VIEW
 
-On app load:
-  Check localStorage for userId
-  If found: fetch returnContext → show ReturningScreen
-  If not: show OpeningScreen
-  After either: show main three-zone layout
+Click "Roadmap" in sidebar.
 
-const existingUserId = localStorage.getItem("devradar_userId");
+VERIFY:
+  "Generating your personalized roadmap..." loading state
+  Wait up to 15 seconds for Groq to generate
 
-if (!userId) {
-  if (existingUserId) {
-    // Fetch return context then show ReturningScreen
-    return <ReturningScreen returnContext={returnContext} onContinue={...} />;
-  } else {
-    return <OpeningScreen onComplete={...} />;
-  }
-}
-// else show main layout
+  After load:
+  "Your Career Roadmap" heading
+  "Powered by Claude AI · Based on your career wiki" subtitle
+  Total timeline weeks shown
+
+  If wiki has data:
+    Immediate hackathons section (orange/peach banner)
+    At least 2-3 week cards
+    Each week card has:
+      Week range (Week 1-2)
+      Focus skill name
+      Why text
+      Daily time hours
+      Resource list with icons: 📖 📝 🎥 🛠
+      At least one resource with real URL
+      Hackathon to target (mauve pill)
+      Milestone text
+    Company readiness section
+
+  If wiki empty:
+    "Feed career data first to generate your roadmap"
+    "Generate Roadmap" button
+
+Click a resource URL (if available):
+  Verify it opens in new tab
+
+Screenshot: roadmap with week cards expanded.
 
 ---
 
-GIT COMMITS FOR THIS WORK
+FLOW 10 — JOURNEY VIEW
 
-"add catppuccin mocha css variables to index.css"
-"restyle sidebar with catppuccin colors"
-"restyle topbar with catppuccin"
-"apply catppuccin to detail panel"
-"apply catppuccin to ingest panel"
-"apply catppuccin to chat interface"
-"apply catppuccin to roadmap view"
-"apply catppuccin to journey view"
-"apply catppuccin to memory badge"
-"create opening screen with floating nodes animation"
-"create returning user screen"
-"wire opening and returning screens in app jsx"
-"fix graph tooltip catppuccin override"
-"final catppuccin polish pass"
+Click "My Journey" in sidebar.
+
+VERIFY:
+  "My Journey" heading
+  "Everything DevRadar has learned about your career"
+  Stats grid (4 cards):
+    Wiki Pages count
+    Companies count
+    Skills Tracked count
+    Gaps Found count
+
+  Timeline of events (if ingest was done):
+    Events listed newest first
+    Each event has colored dot + label + timestamp
+    Company events: peach dots
+    Skill events: blue dots
+    Gap events: red dots
+    Hackathon events: mauve dots
+
+  If no events: "No journey data yet" message
+
+VERIFY counts match what was actually ingested:
+  If 1 company ingested → Companies: 1
+  Dots are correctly colored
+  Timestamps are realistic
+
+Screenshot: journey view with timeline events.
+
+---
+
+FLOW 11 — MARK AS LEARNED
+
+Go to "Career Graph"
+Click TypeScript red node
+DetailPanel shows "Mark as Learned" button
+
+ACTION — Click "Mark as Learned":
+
+VERIFY:
+  Button changes state (green check or grayed)
+  Node color in graph changes from red to blue (live update)
+  Edge between Razorpay and TypeScript changes from dashed to solid
+  Sidebar "Gaps" count decreases by 1
+  Sidebar "Skills" count increases by 1
+  HydraDB saved (check console for log)
+
+Screenshot: before marking learned (red node).
+Screenshot: after marking learned (node turned blue).
+
+---
+
+FLOW 12 — RETURN VISIT (HydraDB Memory)
+
+ACTION — Close the browser tab.
+Open new tab, navigate to http://localhost:5173
+
+VERIFY:
+  App does NOT show OpeningScreen
+  App shows ReturningScreen (new returning user component):
+    Brain emoji 🧠
+    "Welcome back" heading
+    Memory message from HydraDB
+    Urgent items if any hackathon deadlines close
+    "Continue →" button
+    Green pulsing "HydraDB memory loaded" indicator
+
+Click "Continue →"
+
+VERIFY:
+  Main graph layout loads
+  Graph has same nodes as before session ended
+  Sidebar has same wiki pages
+  MemoryBadge banner visible at top of graph area:
+    Yellow/amber background
+    "HydraDB recalls your journey" text
+    The same memory message
+    Urgent items as pills
+
+Screenshot: ReturningScreen with memory message.
+Screenshot: main layout with MemoryBadge visible.
+
+---
+
+FLOW 13 — MOBILE LAYOUT
+
+Resize browser to 375px width.
+
+VERIFY:
+  Sidebar is hidden (not visible)
+  Bottom tab bar appears at bottom (60px):
+    5 tabs: 🗺 Career Graph, ➕ Feed Data, 💬 Ask, 📍 Roadmap, ⏱ Journey
+    Active tab in mauve color
+  Topbar shows view title on left, search icon right
+  Content fills full width
+
+Click each bottom tab:
+  Verify correct view loads
+  Verify no horizontal overflow
+
+Click graph tab:
+  Graph fills full screen
+  Click a node
+  Verify DetailPanel slides up from bottom as sheet (not from right)
+  Sheet covers 70% of screen
+  Drag handle at top of sheet
+
+Screenshot: mobile view 375px with bottom tabs.
+Screenshot: mobile with detail sheet open.
+
+---
+
+FLOW 14 — BACKEND API VERIFICATION
+
+Open browser DevTools → Network tab
+Clear all requests
+
+Perform these actions and verify API calls:
+
+Stack submission → POST /api/user/init
+  Request body has: stack, learning_stack, experience, goals, target_role, target_companies
+  Response has: userId, message
+
+Ingest text → POST /api/ingest
+  Request body has: userId, content, type: "text"
+  Response has: success, pages_created, companies_found, gaps_identified
+
+Graph load → GET /api/graph/:userId
+  Response has: nodes array, edges array
+  Nodes have: id, label, type properties
+
+Chat question → POST /api/chat
+  Request has: userId, question
+  Response has: answer, citations array
+
+Roadmap → GET /api/roadmap/:userId
+  Response has: weeks array, immediate_hackathons, company_readiness
+
+Wiki pages → GET /api/wiki-pages/:userId
+  Response has: pages array, count
+
+VERIFY no 500 errors on any endpoint.
+VERIFY all responses are valid JSON.
+
+Screenshot: Network tab showing successful API calls.
+
+---
+
+FLOW 15 — CONSOLE CHECK
+
+Open DevTools → Console tab
+
+VERIFY:
+  Styled DevRadar log appears: colored background
+  "Powered by HydraDB and Groq AI" log
+  "WikiThon 2025" log
+  No red errors
+  HydraDB operation logs visible (blue colored)
+  Groq API call logs visible
+
+VERIFY no:
+  Uncaught TypeError
+  Network failed (besides expected CORS on external URLs)
+  React key warnings (acceptable but note them)
+
+Screenshot: clean console with styled logs.
+
+---
+
+END-TO-END TEST REPORT
+
+After all 15 flows, write:
+
+DEVRADAR E2E TEST REPORT
+Date: [today]
+Backend: Groq API (Llama 3.3-70b-versatile)
+Frontend: React + Catppuccin Mocha
+
+FLOW 1  Opening Screen:           PASS/FAIL
+FLOW 2  Main Layout:              PASS/FAIL
+FLOW 3  Ingest Text:              PASS/FAIL
+FLOW 4  Ingest URL:               PASS/FAIL
+FLOW 5  Ingest Screenshot:        PASS/FAIL
+FLOW 6  Graph Interaction:        PASS/FAIL
+FLOW 7  Sidebar Navigation:       PASS/FAIL
+FLOW 8  Chat Interface:           PASS/FAIL
+FLOW 9  Roadmap View:             PASS/FAIL
+FLOW 10 Journey View:             PASS/FAIL
+FLOW 11 Mark as Learned:          PASS/FAIL
+FLOW 12 Return Visit Memory:      PASS/FAIL
+FLOW 13 Mobile Layout:            PASS/FAIL
+FLOW 14 API Verification:         PASS/FAIL
+FLOW 15 Console Check:            PASS/FAIL
+
+CRITICAL ISSUES (blocks demo):
+  List anything broken that judges would immediately see
+
+NON-CRITICAL ISSUES:
+  List minor visual/UX issues
+
+GROQ API STATUS:
+  Response quality: Good/Acceptable/Poor
+  Average response time: X seconds
+  Any failures: Yes/No
+
+HYDRADB STATUS:
+  Memory persisted across session: Yes/No
+  Return visit context loaded: Yes/No
+
+MISSING FROM ORIGINAL PLAN:
+  List features not yet implemented
+
+READY FOR DEPLOYMENT: Yes/No
+```
+
+---
+
+## PART 5 — QUICK GROQ SETUP (5 minutes)
+
+```
+1. Go to: console.groq.com
+2. Sign up free (Google login works)
+3. Go to: API Keys section
+4. Create new key
+5. Copy key
+6. Add to backend/.env:
+   GROQ_API_KEY=gsk_xxxxxxxxxxxx
+7. Restart backend: node server.js
+8. Test: curl http://localhost:3001/api/health
+```
+
+Free tier limits: 14,400 requests/day, 30 requests/minute.
+More than enough for hackathon testing and demo.
+
+---
+
+## PART 6 — IF GROQ IS SLOW: FALLBACK DEMO DATA
+
+If Groq is slow or fails during testing, inject this hardcoded response
+in groq.js for ingestStep1 to test UI without waiting for API:
+
+```javascript
+// DEMO MODE — remove before submission
+const DEMO_INGEST_RESPONSE = {
+  companies_found: [{
+    name: "Razorpay", role: "Frontend Engineer",
+    skills_required: ["React", "TypeScript", "GraphQL"],
+    salary_range: "15-25 LPA", location: "Bangalore",
+    interview_topics: ["DSA", "System Design", "React"],
+    match_with_student: 80, missing_skills: ["TypeScript", "GraphQL"]
+  }],
+  hackathons_found: [{
+    name: "HackRx 6.0", deadline: "2025-08-05",
+    skills_needed: ["React", "Node.js"], prize: "250000",
+    platform: "Devfolio", match_with_student: 90
+  }],
+  skills_identified: [
+    { name: "TypeScript", student_has: false, reason: "Required by Razorpay" },
+    { name: "GraphQL", student_has: false, reason: "Required by Razorpay" }
+  ],
+  gaps_identified: [
+    { skill: "TypeScript", companies_needing_it: ["Razorpay"], learning_time_weeks: 2, difficulty: "Beginner friendly" },
+    { skill: "GraphQL", companies_needing_it: ["Razorpay"], learning_time_weeks: 3, difficulty: "Intermediate" }
+  ],
+  wiki_pages_to_create: [
+    { key: "companies/razorpay", title: "Razorpay", type: "company" },
+    { key: "gaps/typescript", title: "TypeScript Gap", type: "gap" },
+    { key: "gaps/graphql", title: "GraphQL Gap", type: "gap" },
+    { key: "hackathons/hackrx-6", title: "HackRx 6.0", type: "hackathon" }
+  ],
+  summary: "Found Razorpay frontend role. Main gaps: TypeScript and GraphQL. HackRx 6.0 is a strong immediate match."
+};
 ```
