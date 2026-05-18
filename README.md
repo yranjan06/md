@@ -1,613 +1,627 @@
-# DevRadar — Soft Light Theme System
-### Catppuccin Latte + Rosé Pine Dawn + Neutral Soft
-### Eye-friendly · Warm · Not harsh white
+Fix the core UX problem in DevRadar:
+
+PROBLEM:
+App shows career graph and startups without knowing who the user is.
+User never told the app their stack, goals, or what they want.
+seed-demo.js pre-fills fake data — judges will notice this is fake.
+
+SOLUTION:
+Multi-step onboarding wizard that runs ONCE on first visit.
+User tells the app everything. App stores in HydraDB. Then shows graph.
+On return visit: HydraDB remembers — skip onboarding, go straight to graph.
 
 ---
 
-```
-Replace ALL dark theme CSS with soft light eye-friendly themes.
-Three light options:
-  1. Rosé Pine Dawn  — warm cream, most eye-friendly (DEFAULT)
-  2. Catppuccin Latte — soft lavender-gray
-  3. Neutral Soft     — pure clean light with blue accent
+STEP 1 — FIX App.jsx LOGIC
 
-Default: Rosé Pine Dawn
-Switcher in sidebar. Persists in localStorage.
-Graph node colors are vibrant on light background — like LLM Wiki screenshot.
+Current broken flow:
+  App loads → shows graph (with fake seed data)
 
----
+Correct flow:
+  App loads
+    ↓
+  Check localStorage for "devradar_userId"
+    ↓ found               ↓ not found
+  Fetch return context   Show OnboardingWizard
+    ↓
+  Show ReturningScreen
+    ↓
+  User clicks Continue
+    ↓
+  Show main graph
 
-COMPLETE index.css — REPLACE ENTIRELY
+Update App.jsx:
 
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+const [appState, setAppState] = useState("checking")
+// States: checking | onboarding | returning | app
 
-/* ─────────────────────────────────────────
-   ROSÉ PINE DAWN — Warm cream, eye-friendly
-   ───────────────────────────────────────── */
-:root,
-:root[data-theme="rosepine-dawn"] {
-
-  /* Backgrounds — warm cream tones */
-  --bg-base:        #faf4ed;
-  --bg-mantle:      #f2e9e1;
-  --bg-crust:       #ede5da;
-  --bg-surface0:    #f4ede8;
-  --bg-surface1:    #dfdad9;
-  --bg-surface2:    #cecacd;
-
-  /* Borders */
-  --border:         #dfdad9;
-  --border-active:  #907aa9;
-
-  /* Text — warm dark purple-gray, not black */
-  --text:           #575279;
-  --text-sub:       #797593;
-  --text-muted:     #9893a5;
-  --text-faint:     #b2afa9;
-
-  /* Accent — soft iris/purple */
-  --accent:         #907aa9;
-  --accent-alt:     #d7827a;
-  --accent-bg:      rgba(144,122,169,0.10);
-  --accent-border:  rgba(144,122,169,0.30);
-
-  /* Status */
-  --success:        #286983;
-  --success-bg:     rgba(40,105,131,0.08);
-  --success-border: rgba(40,105,131,0.25);
-  --warning:        #ea9d34;
-  --warning-bg:     rgba(234,157,52,0.10);
-  --warning-border: rgba(234,157,52,0.30);
-  --danger:         #b4637a;
-  --danger-bg:      rgba(180,99,122,0.08);
-  --danger-border:  rgba(180,99,122,0.25);
-  --info:           #56949f;
-  --info-bg:        rgba(86,148,159,0.08);
-  --info-border:    rgba(86,148,159,0.25);
-
-  /* Graph nodes — vibrant on light bg */
-  --node-user:      #ea9d34;
-  --node-company:   #d7827a;
-  --node-skill:     #56949f;
-  --node-gap:       #b4637a;
-  --node-hackathon: #907aa9;
-  --node-edge:      #cecacd;
-
-  /* Shadows — very soft */
-  --shadow-card:    0 1px 4px rgba(87,82,121,0.08), 0 1px 2px rgba(87,82,121,0.05);
-  --shadow-panel:   0 4px 16px rgba(87,82,121,0.12);
-  --shadow-input:   0 0 0 2px rgba(144,122,169,0.20);
-
-  /* Floating circles on opening screen */
-  --circle-1:       #d7827a;
-  --circle-2:       #907aa9;
-  --circle-3:       #56949f;
-  --circle-4:       #ea9d34;
-
-  /* Message bubbles */
-  --bubble-user-bg:      #907aa9;
-  --bubble-user-text:    #faf4ed;
-  --bubble-bot-bg:       #f4ede8;
-  --bubble-bot-text:     #575279;
-  --bubble-bot-border:   #dfdad9;
-}
-
-/* ─────────────────────────────────────────
-   CATPPUCCIN LATTE — Soft lavender-gray
-   ───────────────────────────────────────── */
-:root[data-theme="catppuccin-latte"] {
-
-  /* Backgrounds — cool light lavender */
-  --bg-base:        #eff1f5;
-  --bg-mantle:      #e6e9ef;
-  --bg-crust:       #dce0e8;
-  --bg-surface0:    #ccd0da;
-  --bg-surface1:    #bcc0cc;
-  --bg-surface2:    #acb0be;
-
-  /* Borders */
-  --border:         #ccd0da;
-  --border-active:  #8839ef;
-
-  /* Text — dark blue-gray */
-  --text:           #4c4f69;
-  --text-sub:       #5c5f77;
-  --text-muted:     #6c6f85;
-  --text-faint:     #8c8fa1;
-
-  /* Accent — mauve purple */
-  --accent:         #8839ef;
-  --accent-alt:     #7287fd;
-  --accent-bg:      rgba(136,57,239,0.09);
-  --accent-border:  rgba(136,57,239,0.28);
-
-  /* Status */
-  --success:        #40a02b;
-  --success-bg:     rgba(64,160,43,0.08);
-  --success-border: rgba(64,160,43,0.25);
-  --warning:        #df8e1d;
-  --warning-bg:     rgba(223,142,29,0.09);
-  --warning-border: rgba(223,142,29,0.28);
-  --danger:         #d20f39;
-  --danger-bg:      rgba(210,15,57,0.08);
-  --danger-border:  rgba(210,15,57,0.25);
-  --info:           #1e66f5;
-  --info-bg:        rgba(30,102,245,0.08);
-  --info-border:    rgba(30,102,245,0.25);
-
-  /* Graph nodes */
-  --node-user:      #df8e1d;
-  --node-company:   #fe640b;
-  --node-skill:     #1e66f5;
-  --node-gap:       #d20f39;
-  --node-hackathon: #8839ef;
-  --node-edge:      #acb0be;
-
-  /* Shadows */
-  --shadow-card:    0 1px 4px rgba(76,79,105,0.10), 0 1px 2px rgba(76,79,105,0.06);
-  --shadow-panel:   0 4px 16px rgba(76,79,105,0.14);
-  --shadow-input:   0 0 0 2px rgba(136,57,239,0.18);
-
-  /* Floating circles */
-  --circle-1:       #fe640b;
-  --circle-2:       #8839ef;
-  --circle-3:       #1e66f5;
-  --circle-4:       #40a02b;
-
-  /* Message bubbles */
-  --bubble-user-bg:      #8839ef;
-  --bubble-user-text:    #eff1f5;
-  --bubble-bot-bg:       #e6e9ef;
-  --bubble-bot-text:     #4c4f69;
-  --bubble-bot-border:   #ccd0da;
-}
-
-/* ─────────────────────────────────────────
-   NEUTRAL SOFT — Clean blue-accent light
-   ───────────────────────────────────────── */
-:root[data-theme="neutral-soft"] {
-
-  /* Backgrounds — pure clean light */
-  --bg-base:        #f8f9fa;
-  --bg-mantle:      #ffffff;
-  --bg-crust:       #f1f3f5;
-  --bg-surface0:    #f1f3f5;
-  --bg-surface1:    #e9ecef;
-  --bg-surface2:    #dee2e6;
-
-  /* Borders */
-  --border:         #e9ecef;
-  --border-active:  #3b82f6;
-
-  /* Text */
-  --text:           #1a1a2e;
-  --text-sub:       #495057;
-  --text-muted:     #6c757d;
-  --text-faint:     #adb5bd;
-
-  /* Accent — blue */
-  --accent:         #3b82f6;
-  --accent-alt:     #6366f1;
-  --accent-bg:      rgba(59,130,246,0.08);
-  --accent-border:  rgba(59,130,246,0.25);
-
-  /* Status */
-  --success:        #059669;
-  --success-bg:     rgba(5,150,105,0.08);
-  --success-border: rgba(5,150,105,0.25);
-  --warning:        #d97706;
-  --warning-bg:     rgba(217,119,6,0.09);
-  --warning-border: rgba(217,119,6,0.28);
-  --danger:         #dc2626;
-  --danger-bg:      rgba(220,38,38,0.08);
-  --danger-border:  rgba(220,38,38,0.25);
-  --info:           #0284c7;
-  --info-bg:        rgba(2,132,199,0.08);
-  --info-border:    rgba(2,132,199,0.25);
-
-  /* Graph nodes */
-  --node-user:      #d97706;
-  --node-company:   #ea580c;
-  --node-skill:     #3b82f6;
-  --node-gap:       #dc2626;
-  --node-hackathon: #7c3aed;
-  --node-edge:      #dee2e6;
-
-  /* Shadows */
-  --shadow-card:    0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.04);
-  --shadow-panel:   0 4px 16px rgba(0,0,0,0.10);
-  --shadow-input:   0 0 0 2px rgba(59,130,246,0.20);
-
-  /* Floating circles */
-  --circle-1:       #ea580c;
-  --circle-2:       #7c3aed;
-  --circle-3:       #3b82f6;
-  --circle-4:       #059669;
-
-  /* Message bubbles */
-  --bubble-user-bg:      #3b82f6;
-  --bubble-user-text:    #ffffff;
-  --bubble-bot-bg:       #ffffff;
-  --bubble-bot-text:     #1a1a2e;
-  --bubble-bot-border:   #e9ecef;
-}
-
-/* ─────────────────────────────────────────
-   BASE STYLES — Same for all themes
-   ───────────────────────────────────────── */
-* { box-sizing: border-box; margin: 0; padding: 0; }
-
-body {
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-  background: var(--bg-base);
-  color: var(--text);
-  -webkit-font-smoothing: antialiased;
-  line-height: 1.6;
-  transition: background 200ms ease, color 200ms ease;
-}
-
-::selection {
-  background: var(--accent-bg);
-  color: var(--text);
-}
-
-::-webkit-scrollbar { width: 5px; height: 5px; }
-::-webkit-scrollbar-track { background: var(--bg-base); }
-::-webkit-scrollbar-thumb {
-  background: var(--bg-surface2);
-  border-radius: 999px;
-}
-::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
-
-/* Override vis-network tooltip for light theme */
-.vis-tooltip {
-  background: var(--bg-mantle) !important;
-  border: 1px solid var(--border) !important;
-  border-radius: 10px !important;
-  color: var(--text) !important;
-  font-family: 'Inter', sans-serif !important;
-  font-size: 12px !important;
-  padding: 8px 12px !important;
-  box-shadow: var(--shadow-panel) !important;
-}
-
-@keyframes float {
-  0%, 100% { transform: translateY(0px); }
-  50% { transform: translateY(-18px); }
-}
-@keyframes pulse-dot {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.3; }
-}
-@keyframes fade-up {
-  from { opacity: 0; transform: translateY(10px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-@keyframes slide-right {
-  from { transform: translateX(100%); opacity: 0; }
-  to { transform: translateX(0); opacity: 1; }
-}
-@keyframes slide-bottom {
-  from { transform: translateY(100%); }
-  to { transform: translateY(0); }
-}
-
-.anim-fade-up { animation: fade-up 350ms cubic-bezier(0.16,1,0.3,1) forwards; }
-.anim-pulse { animation: pulse-dot 2s ease-in-out infinite; }
-.anim-slide-right { animation: slide-right 250ms ease forwards; }
-.anim-slide-bottom { animation: slide-bottom 280ms ease forwards; }
-
----
-
-UPDATE useTheme.js
-
-const THEMES = {
-  "rosepine-dawn": {
-    id: "rosepine-dawn",
-    label: "Rosé Pine Dawn",
-    emoji: "🌸",
-    preview: ["#d7827a", "#907aa9", "#56949f"]
-  },
-  "catppuccin-latte": {
-    id: "catppuccin-latte",
-    label: "Catppuccin Latte",
-    emoji: "☕",
-    preview: ["#fe640b", "#8839ef", "#1e66f5"]
-  },
-  "neutral-soft": {
-    id: "neutral-soft",
-    label: "Neutral Soft",
-    emoji: "🪨",
-    preview: ["#ea580c", "#7c3aed", "#3b82f6"]
+useEffect(() => {
+  const existingId = localStorage.getItem("devradar_userId")
+  if (!existingId) {
+    setAppState("onboarding")
+    return
   }
-};
+  // Has userId — fetch return context
+  axios.get(`${API}/api/return-context/${existingId}`)
+    .then(res => {
+      setUserId(existingId)
+      setReturnContext(res.data)
+      setAppState(res.data.hasHistory ? "returning" : "app")
+    })
+    .catch(() => {
+      // If fetch fails — still go to app
+      setUserId(existingId)
+      setAppState("app")
+    })
+}, [])
 
-const DEFAULT_THEME = "rosepine-dawn";
+// Render based on state:
+if (appState === "checking") return <LoadingScreen />
+if (appState === "onboarding") return <OnboardingWizard onComplete={handleOnboardComplete} />
+if (appState === "returning") return <ReturningScreen returnContext={returnContext} onContinue={() => setAppState("app")} />
+if (appState === "app") return <MainAppLayout ... />
 
----
-
-FULL COMPONENT STYLE GUIDE
-Apply these to every component using CSS variables only:
-
-CARDS:
-  background: var(--bg-mantle)
-  border: 1px solid var(--border)
-  border-radius: 10px
-  box-shadow: var(--shadow-card)
-
-INPUTS:
-  background: var(--bg-surface0)
-  border: 1px solid var(--border)
-  color: var(--text)
-  placeholder color: var(--text-faint)
-  on focus:
-    border-color: var(--border-active)
-    box-shadow: var(--shadow-input)
-    outline: none
-
-BUTTONS — Primary:
-  background: var(--accent)
-  color: var(--bg-base)
-  border: none
-  hover: filter brightness(1.08)
-  disabled: opacity 0.4, cursor not-allowed
-
-BUTTONS — Secondary/Outlined:
-  background: transparent
-  border: 1px solid var(--border)
-  color: var(--text-sub)
-  hover: background var(--bg-surface0)
-
-BUTTONS — Active/Selected:
-  background: var(--accent-bg)
-  border: 1px solid var(--accent-border)
-  color: var(--accent)
-
-BADGES:
-  Success: bg var(--success-bg), border var(--success-border), color var(--success)
-  Warning: bg var(--warning-bg), border var(--warning-border), color var(--warning)
-  Danger: bg var(--danger-bg), border var(--danger-border), color var(--danger)
-  Info: bg var(--info-bg), border var(--info-border), color var(--info)
-
-SIDEBAR:
-  background: var(--bg-mantle)
-  border-right: 1px solid var(--border)
-
-TOPBAR:
-  background: var(--bg-mantle)
-  border-bottom: 1px solid var(--border)
-  box-shadow: var(--shadow-card)
-
-CHAT bubbles:
-  User: bg var(--bubble-user-bg), color var(--bubble-user-text)
-  Bot: bg var(--bubble-bot-bg), border var(--bubble-bot-border), color var(--bubble-bot-text)
-
----
-
-UPDATED ThemeSwitcher.jsx FOR LIGHT THEMES
-
-export default function ThemeSwitcher() {
-  const { theme, setTheme, themes } = useTheme();
-
-  return (
-    <div className="px-3 py-3"
-         style={{ borderTop: "1px solid var(--border)" }}>
-      <div style={{
-        fontSize: "10px",
-        textTransform: "uppercase",
-        letterSpacing: "0.7px",
-        color: "var(--text-faint)",
-        marginBottom: "8px"
-      }}>
-        Theme
-      </div>
-      <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
-        {Object.values(themes).map(t => (
-          <button key={t.id} onClick={() => setTheme(t.id)}
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "10px",
-                    padding: "7px 10px",
-                    borderRadius: "8px",
-                    textAlign: "left",
-                    width: "100%",
-                    cursor: "pointer",
-                    transition: "all 150ms",
-                    background: theme === t.id ? "var(--accent-bg)" : "transparent",
-                    border: `1px solid ${theme === t.id ? "var(--accent-border)" : "transparent"}`,
-                    color: theme === t.id ? "var(--accent)" : "var(--text-muted)"
-                  }}>
-            {/* Preview dots */}
-            <div style={{ display: "flex", gap: "3px", flexShrink: 0 }}>
-              {t.preview.map((color, i) => (
-                <div key={i} style={{
-                  width: "10px", height: "10px",
-                  borderRadius: "50%", background: color
-                }} />
-              ))}
-            </div>
-            <span style={{ fontSize: "12px", fontWeight: 500, flex: 1 }}>
-              {t.label}
-            </span>
-            {theme === t.id && (
-              <span style={{ fontSize: "11px", color: "var(--accent)" }}>✓</span>
-            )}
-          </button>
-        ))}
-      </div>
-    </div>
-  );
+function handleOnboardComplete(userData) {
+  setUserId(userData.userId)
+  setUserStack(userData.stack)
+  localStorage.setItem("devradar_userId", userData.userId)
+  setAppState("app")
 }
 
 ---
 
-UPDATED OpeningScreen.jsx — LIGHT THEME CARD
+STEP 2 — CREATE frontend/src/components/OnboardingWizard.jsx
 
-The opening card on light theme:
+Four-step wizard. User goes through all four before seeing the app.
+Progress bar at top shows which step they are on.
+Cannot skip. Each step validates before Next.
 
-background: var(--bg-mantle)
-border: 1px solid var(--border)
-box-shadow: var(--shadow-panel)
-border-radius: 16px
+Props: onComplete(userData)
 
-NO glow effect — glow is for dark themes.
-Instead: very soft shadow.
+STATE:
+  const [step, setStep] = useState(1)          // 1, 2, 3, 4
+  const [knowWell, setKnowWell] = useState([]) // skills user knows
+  const [learning, setLearning] = useState([]) // skills user is learning
+  const [experience, setExperience] = useState(null)
+  const [targetRole, setTargetRole] = useState("")
+  const [lookingFor, setLookingFor] = useState([]) // internship, job, hackathon
+  const [targetCompanies, setTargetCompanies] = useState([])
+  const [timeline, setTimeline] = useState(null)
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState("")
 
-Tag input container:
-  background: var(--bg-surface0)
-  border: 1px solid var(--border)
-  Focused: border var(--border-active), box-shadow var(--shadow-input)
+LAYOUT:
+  Full screen, bg: var(--bg-base)
+  Center card: max-width 540px, bg: var(--bg-mantle)
+  
+  TOP of card:
+    DevRadar wordmark left
+    Step indicator right: "Step 2 of 4"
+    Progress bar below: fills 25% per step
+    Color: var(--accent)
 
-Skill tags:
-  background: var(--accent-bg)
-  border: 1px solid var(--accent-border)
-  color: var(--accent)
-
-CTA button:
-  background: var(--accent)
-  color: white (or var(--bg-base) for Rosé Pine Dawn)
-  no border
-
----
-
-UPDATED MemoryBadge FOR LIGHT THEME
-
-On light theme, memory badge should be warm — not dark:
-
-background: var(--warning-bg)        ← soft warm yellow/gold tint
-border-bottom: 1px solid var(--warning-border)
-color: var(--warning)
-Message text: var(--text)
-
-Urgent pills:
-  Deadline < 3 days: bg var(--danger-bg), border var(--danger-border), color var(--danger)
-  Deadline < 7 days: bg var(--warning-bg), border var(--warning-border), color var(--warning)
-
-HydraDB status dot: var(--success)
+  BOTTOM of card:
+    Back button (left) — only on steps 2,3,4
+    Next/Finish button (right) — disabled until step is valid
 
 ---
 
-SIGMA.JS GRAPH CONFIG FOR LIGHT THEME
+STEP 2a — STEP 1: Who are you?
 
-Light theme needs different sigma config —
-nodes must be vibrant to pop on light canvas:
+Title: "Let's start with you"
+Subtitle: "This helps DevRadar personalize everything"
 
-const options = {
-  physics enabled,
-  nodes: {
-    font: {
-      color: "var(--text)" read via getComputedStyle,
-      strokeWidth: 4,
-      strokeColor: getComputedStyle bg-base value
-    },
-    shadow: {
-      enabled: true,
-      color: "rgba(0,0,0,0.15)",
-      size: 6, x: 0, y: 2
+Fields:
+
+  Name (optional):
+    Label: "What should we call you?"
+    Input: text, placeholder "Arjun, Priya, your name..."
+    Not required — can skip
+
+  Experience level (REQUIRED):
+    Label: "Where are you right now?"
+    Four options as cards (not buttons):
+    
+    [ 🎓 Student ]
+      "Currently in college, learning to code"
+    
+    [ 🌱 Fresher ]  
+      "Just graduated, looking for first job"
+    
+    [ 💼 Working ]
+      "1-3 years experience, want to grow"
+    
+    [ 🚀 Switching ]
+      "Coming from another domain"
+    
+    Card style:
+      width: 100%, padding: 12px 16px
+      background: var(--bg-surface0)
+      border: 2px solid var(--border)
+      border-radius: 10px
+      text-align: left
+      emoji large left, text right
+      
+      Active selected card:
+        border-color: var(--border-active)
+        background: var(--accent-bg)
+        Emoji and title in var(--accent)
+
+  VALIDATION: Experience must be selected to proceed.
+
+---
+
+STEP 2b — STEP 2: Your current skills
+
+Title: "What do you know right now?"
+Subtitle: "Be honest — this is just for you"
+
+Instruction text:
+  "Click once — you know it well ✓
+   Click twice — you're currently learning it ⏳
+   Click again — remove it"
+
+Skill grid by category.
+Each category is collapsible (open by default):
+
+CATEGORY: Frontend
+  React, Vue.js, Next.js, Angular, TypeScript,
+  JavaScript, HTML/CSS, Tailwind CSS, Redux
+
+CATEGORY: Backend  
+  Node.js, Python, Java, Go, Rust, Django,
+  FastAPI, Express.js, Spring Boot, PHP
+
+CATEGORY: Database
+  PostgreSQL, MongoDB, MySQL, Redis,
+  Firebase, SQLite, Supabase
+
+CATEGORY: Cloud & DevOps
+  AWS, Docker, Kubernetes, Git,
+  Linux, CI/CD, GCP, Azure
+
+CATEGORY: CS Fundamentals
+  DSA, System Design, REST APIs,
+  GraphQL, Microservices, OS basics
+
+CATEGORY: Other / Emerging
+  Machine Learning, TensorFlow, Solidity,
+  Flutter, React Native, Web3
+
+Each skill button:
+  Default (not selected):
+    bg: var(--bg-surface0)
+    border: 1px solid var(--border)
+    color: var(--text-muted)
+    padding: 6px 14px, border-radius: 8px, font-size: 13px
+  
+  State 1 — Know well (click once):
+    bg: var(--info-bg)
+    border: 1px solid var(--info-border)
+    color: var(--info)
+    Left icon: "✓" small
+
+  State 2 — Currently learning (click twice):
+    bg: var(--warning-bg)
+    border: 1px dashed var(--warning-border)
+    color: var(--warning)
+    Left icon: "⏳" small
+
+  State 3 — Click again deselects back to default
+
+Live summary below grid:
+  "You know: React, Node.js, Python"     (info color)
+  "Learning: TypeScript, Docker"         (warning color)
+
+VALIDATION: At least 1 skill selected to proceed.
+
+---
+
+STEP 2c — STEP 3: What are you looking for?
+
+Title: "What's your goal right now?"
+Subtitle: "Pick everything that applies"
+
+Section 1 — Looking for (REQUIRED, multi-select):
+  
+  Four option cards in 2x2 grid:
+  
+  [ 🎓 Internship ]         [ 💼 Full-time Job ]
+  "First industry           "Permanent role at
+   experience"               a company"
+  
+  [ 🏆 Hackathons ]         [ 🔄 Freelance ]
+  "Win prizes, build        "Project-based work,
+   portfolio, network"       independence"
+
+  Selected: accent border + accent bg
+
+Section 2 — Target role (optional):
+  Label: "Any specific role in mind?"
+  Input text: placeholder "e.g. Frontend Developer, Backend Engineer, Full Stack, ML Engineer"
+  Helper text below: "Leave blank if unsure — DevRadar will suggest based on your skills"
+
+Section 3 — Dream companies (optional):
+  Label: "Any companies you have in mind?"
+  Helper: "We'll prioritize these in your gap analysis"
+  
+  Chips from pre-loaded list:
+    Razorpay, Groww, CRED, Zepto, Meesho, PhonePe,
+    Swiggy, Zomato, Ola, BrowserStack, Postman,
+    Freshworks, Unacademy, Flipkart, Amazon, Google
+  
+  Click chip to select (max 3):
+    Selected: accent bg + accent border + "×" to remove
+    Unselected: surface bg + border
+  
+  Or type custom company name:
+    Small input below chips: "Other company..."
+
+VALIDATION: At least 1 goal selected to proceed.
+
+---
+
+STEP 2d — STEP 4: Timeline + Confirm
+
+Title: "Almost done!"
+Subtitle: "Last two things"
+
+Section 1 — Timeline (REQUIRED):
+  Label: "When are you looking to land something?"
+  
+  Four option buttons horizontal row:
+  [ Right now ] [ 1-3 months ] [ 3-6 months ] [ Just exploring ]
+  
+  Style same as experience cards but smaller
+
+Section 2 — Summary preview (auto-generated):
+  Show a preview card of what will be stored:
+  
+  Card: bg var(--bg-surface0), border var(--border), rounded-xl, padding 16px
+  
+  Title: "Your DevRadar Profile"
+  
+  Rows:
+    Experience:  [selected experience]
+    Know well:   React, Node.js, Python (max 4, "+N more")
+    Learning:    TypeScript (max 2, "+N more")
+    Looking for: Internship, Hackathons
+    Timeline:    1-3 months
+    Companies:   Razorpay, Groww
+  
+  Below card:
+    Small text: "This is saved privately in HydraDB.
+                 Only you can see it. You can update it anytime."
+
+Section 3 — Finish button:
+  Full width, large, bg var(--accent), color white
+  Text: "Build my career graph →"
+  
+  On click:
+    setLoading(true)
+    POST /api/user/init with all collected data
+    On success: call onComplete(userData)
+    On error: show error message, setLoading(false)
+
+LOADING STATE while submitting:
+  Button shows spinner + "Setting up your career wiki..."
+  Disable all inputs
+
+---
+
+STEP 3 — UPDATE /api/user/init TO ACCEPT FULL DATA
+
+Update backend/server.js:
+
+app.post('/api/user/init', async (req, res) => {
+  try {
+    const {
+      name,
+      experience,
+      stack,           // know_well skills array
+      learning_stack,  // learning skills array
+      goals,           // ["internship", "hackathon"]
+      target_role,     // "Frontend Developer"
+      target_companies, // ["razorpay", "groww"]
+      timeline         // "1-3 months"
+    } = req.body
+
+    // Validate required fields
+    if (!experience) {
+      return res.status(400).json({ error: "Experience level is required" })
     }
-  },
-  edges: {
-    color: { color: getComputedStyle node-edge value, opacity: 0.5 }
+    if (!stack || stack.length === 0) {
+      return res.status(400).json({ error: "At least one skill is required" })
+    }
+    if (!goals || goals.length === 0) {
+      return res.status(400).json({ error: "At least one goal is required" })
+    }
+    if (!timeline) {
+      return res.status(400).json({ error: "Timeline is required" })
+    }
+
+    const userId = require('uuid').v4()
+
+    // Store full profile in HydraDB
+    await initUser({
+      userId,
+      name: name || "Developer",
+      experience,
+      stack,
+      learning_stack: learning_stack || [],
+      goals,
+      target_role: target_role || "",
+      target_companies: target_companies || [],
+      timeline,
+      created_at: new Date().toISOString()
+    })
+
+    // Create initial career wiki overview page
+    const overviewContent = `---
+type: overview
+userId: ${userId}
+name: ${name || "Developer"}
+experience: ${experience}
+created: ${new Date().toISOString().split("T")[0]}
+---
+
+# Career Overview
+
+**Experience Level:** ${experience}
+**Target Role:** ${target_role || "Not specified yet"}
+**Timeline:** ${timeline}
+
+## Current Stack
+${stack.map(s => `- [[skills/${s.toLowerCase().replace(/ /g, "-")}]] ✓`).join("\n")}
+
+## Currently Learning
+${(learning_stack || []).map(s => `- [[skills/${s.toLowerCase().replace(/ /g, "-")}]] ⏳`).join("\n")}
+
+## Goals
+${goals.map(g => `- ${g}`).join("\n")}
+
+## Target Companies
+${(target_companies || []).map(c => `- [[companies/${c}]]`).join("\n")}
+
+_Feed job descriptions, URLs, or screenshots to build your career wiki._`
+
+    await saveWikiPage(userId, "overview", overviewContent)
+    await appendToLog(userId, {
+      action: "onboarding_complete",
+      detail: `Profile created. Stack: ${stack.join(", ")}. Goals: ${goals.join(", ")}.`
+    })
+
+    console.log(`[Init] New user: ${userId}, stack: ${stack.join(", ")}`)
+
+    res.json({
+      userId,
+      message: "Profile created",
+      name: name || "Developer",
+      stack,
+      learning_stack,
+      goals,
+      target_companies
+    })
+
+  } catch (error) {
+    console.error("[/api/user/init] error:", error)
+    res.status(500).json({ error: "Failed to create profile" })
   }
-}
-
-Canvas background: var(--bg-base)
-The graph container div:
-  style={{ background: "var(--bg-base)" }}
-
-On light: nodes look more vibrant — Rosé Pine Dawn rose + iris + foam
-are beautiful on the cream bg exactly like LLM Wiki screenshot.
+})
 
 ---
 
-THEME PREVIEW COMPARISON
+STEP 4 — REMOVE seed-demo.js FROM AUTO-RUN
 
-Visual feel of each:
+In package.json, remove any seed script from "start" or "dev".
+seed-demo.js should only run manually: node seed-demo.js
 
-Rosé Pine Dawn (DEFAULT):
-  Like an old book, warm parchment
-  Cream bg #faf4ed + rose/iris/foam accents
-  Most eye-friendly for long sessions
-  Warm golden yellow user node pops beautifully
-
-Catppuccin Latte:
-  Like a clear overcast morning
-  Gray-lavender bg #eff1f5 + mauve/orange/blue nodes
-  Clean, professional, slightly cooler tone
-  High contrast nodes — orange company, blue skill pop
-
-Neutral Soft:
-  Like white paper, cleanest
-  Near-white bg #f8f9fa + standard blue/purple accents
-  Closest to GitHub/Notion feel
-  Most conventional, safest for demos
+Also: clear any pre-seeded HydraDB data to test clean onboarding.
 
 ---
 
-TESTING FLOW 17 — LIGHT THEME VERIFICATION
+STEP 5 — UPDATE /api/analyze TO USE USER PROFILE
 
-Add to E2ETest.md:
+Currently analyze pulls from JSON files generically.
+Now it should filter based on user's actual target companies and goals.
 
-FLOW 17 — LIGHT THEME
+app.post('/api/analyze', async (req, res) => {
+  const { userId } = req.body
+  const user = await getUser(userId)
+  
+  // user.stack = their actual skills
+  // user.target_companies = their preferred companies
+  // user.experience = beginner/fresher/working/switching
+  // user.goals = ["internship", "hackathon"]
+  
+  const startups = require('./data/startups.json')
+  
+  // Filter: if user has target companies, show those first
+  let ordered = [...startups]
+  if (user.target_companies?.length > 0) {
+    ordered.sort((a, b) => {
+      const aTarget = user.target_companies.includes(a.id) ? -1 : 0
+      const bTarget = user.target_companies.includes(b.id) ? -1 : 0
+      return aTarget - bTarget
+    })
+  }
+  
+  // Filter by experience: beginner only sees 0-1yr roles
+  if (user.experience === "student" || user.experience === "fresher") {
+    ordered = ordered.filter(s =>
+      s.min_experience === "0-1 years" || s.min_experience === "Fresher"
+    )
+  }
+  
+  // Match stack
+  const withMatch = ordered.map(startup => {
+    const userSkills = [...(user.stack || []), ...(user.learning_stack || [])]
+    const matching = startup.skills_required.filter(s => userSkills.includes(s))
+    const missing = startup.skills_required.filter(s => !userSkills.includes(s))
+    const match_percentage = Math.round((matching.length / startup.skills_required.length) * 100)
+    return { ...startup, match_percentage, matching_skills: matching, missing_skills: missing }
+  })
+  .sort((a, b) => b.match_percentage - a.match_percentage)
+  
+  res.json({ startups: withMatch, user_profile: { stack: user.stack, goals: user.goals } })
+})
 
-Open app on desktop.
+---
 
-VERIFY default theme is Rosé Pine Dawn:
-  Page bg is warm cream — NOT white, NOT dark
-  Sidebar bg slightly darker cream
-  Text is dark purple-gray (#575279) — not black, not harsh
-  Accent color is soft iris purple
+STEP 6 — SHOW PERSONALIZED EMPTY STATE
 
-VERIFY eye-friendliness:
-  No pure white (#ffffff) backgrounds
-  No pure black (#000000) text
-  All contrasts readable but soft
-  Feels warm, like reading on paper
+When user first completes onboarding and graph loads:
 
-Click Catppuccin Latte:
-  Page bg changes to cool gray-lavender
-  Text becomes blue-gray (#4c4f69)
-  Accent becomes mauve (#8839ef)
-  Graph nodes: orange company, blue skill — high contrast on gray
+Graph is empty (no wiki pages yet).
+Show a helpful empty state — NOT a generic "no data" message.
 
-Click Neutral Soft:
-  Page bg near-white
-  Blue accent replaces purple
-  Most neutral look
+EmptyGraphState component:
 
-In ALL three themes verify:
-  Graph canvas uses the bg-base color — matches page
-  Nodes are vibrant colored circles on light background
-  Exactly like LLM Wiki screenshot — colorful nodes on light bg
-  Node legend readable
-  Sidebar readable
-  Chat readable
-  Roadmap readable
-  No dark panels anywhere
+Show inside graph canvas when graphData.nodes.length <= 1:
 
-Screenshot: Rosé Pine Dawn — full app.
-Screenshot: Catppuccin Latte — full app.
-Screenshot: graph closeup in each theme showing vibrant nodes.
+  Icon: 🗺️ large
+  
+  Title: "Hey {user.name}! Your career graph is ready to build."
+  
+  Message: "You've told us your stack. Now feed DevRadar
+            some career data to grow your graph."
+  
+  Three action cards in a row:
+  
+  Card 1 — Paste a job description:
+    Icon: 📋
+    Title: "Job Description"
+    Text: "Copy-paste from LinkedIn, Naukri, or any job board"
+    Button: "Paste JD →" → navigates to Feed Data
+  
+  Card 2 — Share a company URL:
+    Icon: 🔗
+    Title: "Company URL"
+    Text: "LinkedIn job post, company careers page, Devfolio hackathon"
+    Button: "Add URL →" → navigates to Feed Data
+  
+  Card 3 — Upload a screenshot:
+    Icon: 📸
+    Title: "Screenshot"
+    Text: "Screenshot of a job post, tweet, or anything career-related"
+    Button: "Upload →" → navigates to Feed Data
+  
+  Below the three cards:
+    "Or start by exploring" text
+    Two pill links:
+      "Browse matching startups →"
+      "Find hackathons →"
 
-FLOW 17 — LIGHT THEME: PASS/FAIL
+Style:
+  Cards: bg var(--bg-mantle), border var(--border), rounded-xl, padding 16px
+  Action buttons: var(--accent) color text, no bg, underline hover
+  Position: absolute center of graph canvas
+
+---
+
+STEP 7 — ONBOARDING COMPLETION ANIMATION
+
+When user clicks "Build my career graph →":
+
+While loading:
+  Wizard card stays visible
+  Button spins: "Setting up your career wiki..."
+  Small progress steps appear below button:
+    ✓ Creating your profile...
+    ✓ Saving to HydraDB...
+    ✓ Building your wiki overview...
+    ⏳ Preparing your career graph...
+
+After success:
+  Card fades out
+  Graph canvas fades in
+  Empty state shows with personalized greeting
+  Smooth 400ms transition
+
+---
+
+STEP 8 — RETURNING USER KNOWS THEIR STACK
+
+On return visit, ReturningScreen shows user's own stack:
+
+"Welcome back, Arjun!
+
+Your stack: React · Node.js · Python
+Still learning: TypeScript · Docker
+
+Last visit: 3 days ago
+Progress since then: 1 wiki page added
+
+[Continue to your graph →]"
+
+This is pulled from HydraDB — the actual data the user entered.
+NOT demo seed data.
+
+---
+
+COMPLETE USER JOURNEY — FIRST TIME
+
+Step 1: User opens http://localhost:5173
+  → OnboardingWizard Step 1 (Who are you?)
+  → User selects "Student" + types name "Arjun"
+  → Clicks Next
+
+Step 2: OnboardingWizard Step 2 (Skills)
+  → Arjun clicks React once (know well)
+  → Clicks Node.js once (know well)
+  → Clicks Python once (know well)
+  → Clicks TypeScript twice (learning)
+  → Summary shows: "You know: React, Node.js, Python | Learning: TypeScript"
+  → Clicks Next
+
+Step 3: OnboardingWizard Step 3 (Goals)
+  → Clicks "Internship" card
+  → Clicks "Hackathons" card
+  → Types "Frontend Developer" in role field
+  → Clicks Razorpay chip
+  → Clicks Groww chip
+  → Clicks Next
+
+Step 4: OnboardingWizard Step 4 (Timeline + Confirm)
+  → Clicks "1-3 months"
+  → Sees profile preview card
+  → Clicks "Build my career graph →"
+
+After submit:
+  → POST /api/user/init called with full data
+  → userId stored in localStorage
+  → HydraDB stores full profile
+  → Wiki overview page created
+  → Graph loads with empty state
+  → "Hey Arjun! Your career graph is ready to build."
+  → Arjun feeds a job description
+  → Graph populates with his actual data
+
+COMPLETE USER JOURNEY — RETURN VISIT
+
+User opens http://localhost:5173 3 days later
+  → localStorage has userId
+  → Return context fetched from HydraDB
+  → ReturningScreen shows:
+      "Welcome back, Arjun!
+       You added Razorpay wiki page last session.
+       TypeScript is still in your learning list."
+  → User clicks Continue
+  → Graph loads with Razorpay node visible from last session
+  → MemoryBadge shows same context
 
 ---
 
 GIT COMMITS
 
-"replace dark theme vars with rosepine dawn light theme"
-"add catppuccin latte light theme vars"
-"add neutral soft light theme vars"
-"update useTheme default to rosepine-dawn"
-"update ThemeSwitcher for light theme options"
-"update graph canvas bg to use theme variable"
-"update vis-network tooltip for light theme"
-"update MemoryBadge warm colors for light theme"
-"update OpeningScreen card shadow for light no glow"
-"verify no dark colors remain in any component"
-"all three light themes tested passing"
-```
+"fix app state machine for proper onboarding flow"
+"create OnboardingWizard step 1 who are you"
+"create OnboardingWizard step 2 skill selection grid"
+"create OnboardingWizard step 3 goals and companies"
+"create OnboardingWizard step 4 timeline confirm"
+"update user init api to accept full onboarding data"
+"filter analyze results by user experience and goals"
+"add empty graph state with feed prompts"
+"remove seed demo from auto-run"
+"test full first-time user flow end to end"
+"test return visit shows actual user data not demo"
