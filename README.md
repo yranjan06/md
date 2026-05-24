@@ -1,437 +1,461 @@
-
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MnemOS</title>
 <style>
-*{box-sizing:border-box;margin:0;padding:0}
-body{background:#0f0f0f;font-family:'Courier New',monospace;color:#f0f0ee;overflow-x:hidden}
-.nav{height:52px;border-bottom:1px solid rgba(255,255,255,0.07);display:flex;align-items:center;justify-content:space-between;padding:0 28px;background:#0f0f0f;position:sticky;top:0;z-index:10}
-.nav-logo{display:flex;align-items:center;gap:10px}
-.nav-mark{position:relative;width:28px;height:28px}
-.nav-wordmark{font-size:14px;font-weight:700;color:#f0f0ee;letter-spacing:-.01em}
-.nav-right{display:flex;align-items:center;gap:10px}
-.nav-pill{font-size:9px;font-weight:700;padding:3px 10px;border-radius:20px;letter-spacing:.1em;text-transform:uppercase;background:#1a2200;color:#d4f53c;border:1px solid rgba(212,245,60,.2)}
-.nav-btn{font-size:11px;font-weight:700;padding:7px 16px;border-radius:30px;background:#d4f53c;color:#0f0f0f;border:none;cursor:pointer;font-family:'Courier New',monospace;letter-spacing:.02em}
-.hero{text-align:center;padding:56px 28px 48px;position:relative}
-.hero-radar{display:flex;justify-content:center;margin-bottom:32px}
-.hero-title-wrap{display:flex;justify-content:center;margin-bottom:28px}
-.hero-sub{font-size:13px;color:#888880;line-height:1.85;margin-bottom:32px;max-width:440px;margin-left:auto;margin-right:auto}
-.hero-sub strong{color:#d4f53c;font-weight:700}
-.cta-row{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin-bottom:64px}
-.btn-fill{font-size:12px;font-weight:700;padding:12px 28px;border-radius:30px;background:#d4f53c;color:#0f0f0f;border:none;cursor:pointer;font-family:'Courier New',monospace;letter-spacing:.02em;transition:opacity .15s}
-.btn-fill:hover{opacity:.85}
-.btn-ghost{font-size:12px;font-weight:700;padding:12px 28px;border-radius:30px;background:transparent;color:#f0f0ee;border:1.5px solid rgba(255,255,255,0.15);cursor:pointer;font-family:'Courier New',monospace;letter-spacing:.02em;transition:border-color .15s}
-.btn-ghost:hover{border-color:rgba(255,255,255,.35)}
-.divider{height:1px;background:rgba(255,255,255,0.06);margin:0 28px}
-.stats{display:grid;grid-template-columns:1fr 1fr 1fr;gap:0;border-bottom:1px solid rgba(255,255,255,0.06)}
-.stat{padding:28px 20px;text-align:center;border-right:1px solid rgba(255,255,255,0.06)}
-.stat:last-child{border-right:none}
-.stat-n{font-size:36px;font-weight:700;color:#d4f53c;letter-spacing:-.02em;line-height:1}
-.stat-l{font-size:9px;color:#555550;letter-spacing:.1em;text-transform:uppercase;margin-top:6px}
-.sec{padding:56px 28px}
-.sec-lbl{font-size:9px;color:#555550;letter-spacing:.14em;text-transform:uppercase;margin-bottom:16px}
-.sec-lbl span{color:#d4f53c}
-.sec-h{font-size:22px;font-weight:700;color:#f0f0ee;letter-spacing:-.02em;line-height:1.2;margin-bottom:12px}
-.feat-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-top:32px}
-.feat-card{background:#1c1c1c;border:1px solid rgba(255,255,255,0.07);border-radius:14px;padding:22px;transition:border-color .2s}
-.feat-card:hover{border-color:rgba(212,245,60,.2)}
-.feat-icon{width:36px;height:36px;border-radius:8px;background:#1a2200;border:1px solid rgba(212,245,60,.15);display:flex;align-items:center;justify-content:center;margin-bottom:14px}
-.feat-title{font-size:13px;font-weight:700;color:#f0f0ee;margin-bottom:8px}
-.feat-body{font-size:11px;color:#555550;line-height:1.8}
-.feat-body strong{color:#888880;font-weight:400}
-.mem-sec{background:#111119;border-top:1px solid rgba(255,255,255,0.06);border-bottom:1px solid rgba(255,255,255,0.06);padding:48px 28px}
-.mem-inner{display:flex;gap:40px;align-items:center;flex-wrap:wrap}
-.mem-left{flex:1;min-width:240px}
-.mem-right{flex:1;min-width:240px}
-.mem-card{background:#0f0f0f;border:1px solid rgba(212,245,60,.12);border-radius:14px;padding:18px}
-.mem-row{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid rgba(255,255,255,0.05);font-size:11px;color:#555550}
-.mem-row:last-child{border-bottom:none}
-.mem-row strong{color:#888880;font-weight:400}
-.mem-dot{width:6px;height:6px;border-radius:50%;background:#d4f53c;flex-shrink:0}
-.mem-dot-dim{background:#2e2e2e}
-.stack-sec{padding:48px 28px;border-bottom:1px solid rgba(255,255,255,0.06)}
-.scroll-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:20px}
-.s-tag{font-size:11px;font-weight:700;padding:6px 14px;border-radius:20px;letter-spacing:.03em;font-family:'Courier New',monospace}
-.s-tag-lime{background:#1a2200;color:#8aaa18;border:1px solid rgba(212,245,60,.15)}
-.s-tag-dim{background:#1c1c1c;color:#3a3a3a;border:1px solid rgba(255,255,255,0.05)}
-.how-sec{padding:48px 28px;border-bottom:1px solid rgba(255,255,255,0.06)}
-.step-grid{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:12px;margin-top:28px}
-.step{background:#1c1c1c;border-radius:12px;padding:18px;border:1px solid rgba(255,255,255,0.07)}
-.step-num{font-size:24px;font-weight:700;color:#2e2e2e;margin-bottom:10px}
-.step-title{font-size:11px;font-weight:700;color:#f0f0ee;margin-bottom:6px}
-.step-body{font-size:10px;color:#555550;line-height:1.7}
-.footer{padding:32px 28px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px}
-.footer-logo{display:flex;align-items:center;gap:8px}
-.footer-wordmark{font-size:13px;font-weight:700;color:#555550}
-.footer-links{display:flex;gap:20px}
-.footer-link{font-size:10px;color:#3a3a3a;letter-spacing:.06em;cursor:pointer;text-transform:uppercase}
-.footer-link:hover{color:#888880}
-.badge-row{display:flex;gap:8px;margin-top:6px}
-.badge{font-size:9px;font-weight:700;padding:3px 9px;border-radius:20px;letter-spacing:.1em;text-transform:uppercase}
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html, body {
+    height: 100%;
+    background: #000;
+    font-family: 'Courier New', Courier, monospace;
+    color: #fff;
+    overflow-x: hidden;
+  }
+
+  nav {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    z-index: 100;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0 56px;
+    height: 60px;
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+    background: #000;
+  }
+
+  .nav-logo {
+    font-size: 13px;
+    color: rgba(255,255,255,0.5);
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+  }
+
+  .nav-links {
+    display: flex;
+    gap: 36px;
+    list-style: none;
+  }
+
+  .nav-links a {
+    font-size: 12px;
+    color: rgba(255,255,255,0.35);
+    text-decoration: none;
+    letter-spacing: 0.1em;
+    transition: color 0.2s;
+  }
+  .nav-links a:hover { color: #fff; }
+
+  .nav-btn {
+    font-family: 'Courier New', monospace;
+    font-size: 12px;
+    color: #000;
+    background: #fff;
+    border: none;
+    padding: 9px 22px;
+    cursor: pointer;
+    letter-spacing: 0.1em;
+    transition: opacity 0.2s;
+  }
+  .nav-btn:hover { opacity: 0.82; }
+
+  hero {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    padding: 60px 48px 0;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .grid-bg {
+    position: absolute;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(255,255,255,0.025) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,255,255,0.025) 1px, transparent 1px);
+    background-size: 48px 48px;
+    pointer-events: none;
+  }
+
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 11px;
+    color: rgba(255,255,255,0.4);
+    border: 1px solid rgba(255,255,255,0.1);
+    padding: 5px 16px;
+    letter-spacing: 0.12em;
+    margin-bottom: 36px;
+    position: relative;
+    z-index: 1;
+  }
+
+  .badge-dot {
+    width: 5px; height: 5px;
+    background: #fff;
+    flex-shrink: 0;
+    animation: blink 1.2s step-end infinite;
+  }
+
+  @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }
+
+  canvas#hero-logo {
+    display: block;
+    width: 100%;
+    height: auto;
+    image-rendering: pixelated;
+    position: relative;
+    z-index: 1;
+    margin-bottom: 36px;
+  }
+
+  .hero-sub {
+    font-size: 14px;
+    color: rgba(255,255,255,0.35);
+    letter-spacing: 0.07em;
+    line-height: 2;
+    max-width: 520px;
+    margin: 0 auto 40px;
+    position: relative;
+    z-index: 1;
+  }
+
+  .cta-row {
+    display: flex;
+    justify-content: center;
+    gap: 12px;
+    margin-bottom: 36px;
+    flex-wrap: wrap;
+    position: relative;
+    z-index: 1;
+  }
+
+  .btn-primary {
+    font-family: 'Courier New', monospace;
+    font-size: 12px;
+    letter-spacing: 0.12em;
+    color: #000;
+    background: #fff;
+    border: 1px solid #fff;
+    padding: 13px 32px;
+    cursor: pointer;
+    transition: opacity 0.2s;
+  }
+  .btn-primary:hover { opacity: 0.85; }
+
+  .btn-secondary {
+    font-family: 'Courier New', monospace;
+    font-size: 12px;
+    letter-spacing: 0.12em;
+    color: rgba(255,255,255,0.55);
+    background: transparent;
+    border: 1px solid rgba(255,255,255,0.16);
+    padding: 13px 32px;
+    cursor: pointer;
+    transition: border-color 0.2s, color 0.2s;
+  }
+  .btn-secondary:hover { border-color: rgba(255,255,255,0.5); color: #fff; }
+
+  .pills {
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    position: relative;
+    z-index: 1;
+    margin-bottom: 52px;
+  }
+
+  .pill {
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    color: rgba(255,255,255,0.28);
+    border: 1px solid rgba(255,255,255,0.07);
+    padding: 5px 14px;
+  }
+
+  .terminal-preview {
+    width: 100%;
+    max-width: 600px;
+    border: 1px solid rgba(255,255,255,0.1);
+    position: relative;
+    z-index: 1;
+    text-align: left;
+    margin-bottom: 0;
+  }
+
+  .term-bar {
+    background: rgba(255,255,255,0.05);
+    padding: 9px 16px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+  }
+
+  .term-dot { width: 8px; height: 8px; border: 1px solid rgba(255,255,255,0.18); }
+
+  .term-title {
+    font-size: 10px;
+    color: rgba(255,255,255,0.22);
+    letter-spacing: 0.12em;
+    margin-left: 6px;
+  }
+
+  .term-body { padding: 20px 24px 24px; font-size: 12px; line-height: 2.1; }
+
+  .term-line { display: flex; gap: 10px; }
+  .term-prompt { color: rgba(255,255,255,0.18); }
+  .term-cmd { color: rgba(255,255,255,0.65); }
+  .term-out { color: rgba(255,255,255,0.28); padding-left: 20px; }
+  .term-ok { color: rgba(255,255,255,0.4); margin-right: 6px; }
+  .term-cursor {
+    display: inline-block;
+    width: 8px; height: 14px;
+    background: #fff;
+    vertical-align: middle;
+    animation: blink 1s step-end infinite;
+    margin-left: 2px;
+  }
+
+  .scroll-hint {
+    position: relative;
+    z-index: 1;
+    margin-top: 32px;
+    margin-bottom: 32px;
+    font-size: 10px;
+    letter-spacing: 0.18em;
+    color: rgba(255,255,255,0.15);
+    text-transform: uppercase;
+  }
+
+  .features {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    border-top: 1px solid rgba(255,255,255,0.06);
+  }
+
+  .feat {
+    padding: 44px 36px;
+    border-right: 1px solid rgba(255,255,255,0.06);
+  }
+  .feat:last-child { border-right: none; }
+
+  .feat-tag {
+    font-size: 9px;
+    letter-spacing: 0.18em;
+    color: rgba(255,255,255,0.2);
+    text-transform: uppercase;
+    margin-bottom: 14px;
+  }
+
+  .feat-title {
+    font-size: 14px;
+    color: rgba(255,255,255,0.75);
+    margin-bottom: 10px;
+    letter-spacing: 0.04em;
+  }
+
+  .feat-desc {
+    font-size: 11px;
+    color: rgba(255,255,255,0.26);
+    line-height: 1.9;
+    letter-spacing: 0.03em;
+  }
+
+  footer {
+    padding: 24px 56px;
+    border-top: 1px solid rgba(255,255,255,0.06);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+
+  .footer-txt {
+    font-size: 10px;
+    color: rgba(255,255,255,0.18);
+    letter-spacing: 0.1em;
+  }
 </style>
+</head>
+<body>
 
-<h2 class="sr-only">DevRadar landing page — dot pixel dark theme with animated radar logo</h2>
-
-<nav class="nav">
-  <div class="nav-logo">
-    <canvas id="nav-radar" width="28" height="28"></canvas>
-    <span class="nav-wordmark">devradar</span>
-  </div>
-  <div class="nav-right">
-    <span class="nav-pill">● HydraDB</span>
-    <button class="nav-btn">get started →</button>
-  </div>
+<nav>
+  <span class="nav-logo">MnemOS</span>
+  <ul class="nav-links">
+    <li><a href="#">docs</a></li>
+    <li><a href="#">github</a></li>
+    <li><a href="#">demo</a></li>
+  </ul>
+  <button class="nav-btn">get started</button>
 </nav>
 
-<section class="hero">
-  <div class="hero-radar">
-    <canvas id="hero-radar" width="200" height="200"></canvas>
+<hero>
+  <div class="grid-bg"></div>
+
+  <div class="badge">
+    <div class="badge-dot"></div>
+    hackathon build &mdash; agents under pressure
   </div>
 
-  <div class="hero-title-wrap">
-    <canvas id="pixel-text" width="624" height="96"></canvas>
-  </div>
-
-  <div class="badge-row" style="justify-content:center;margin-bottom:20px">
-    <span class="badge" style="background:#1a2200;color:#d4f53c;border:1px solid rgba(212,245,60,.2)">student</span>
-    <span class="badge" style="background:#1c1c1c;color:#555550;border:1px solid rgba(255,255,255,0.07)">india · 2025</span>
-    <span class="badge" style="background:#1c1c1c;color:#555550;border:1px solid rgba(255,255,255,0.07)">WikiThon</span>
-  </div>
+  <canvas id="hero-logo"></canvas>
 
   <p class="hero-sub">
-    AI-powered career intelligence for Indian developers.<br>
-    Match your stack · Surface hackathons · Identify gaps.<br>
-    <strong>Every session remembered by HydraDB.</strong>
+    drag. drop. deploy. build ai agents that browse the web,<br>
+    extract data, make decisions &mdash; and remember everything.
   </p>
 
   <div class="cta-row">
-    <button class="btn-fill">analyse my stack →</button>
-    <button class="btn-ghost">view on github</button>
+    <button class="btn-primary">[ quick start ]</button>
+    <button class="btn-secondary">[ view on github ]</button>
   </div>
 
-  <div style="display:flex;justify-content:center">
-    <div style="background:#1c1c1c;border:1px solid rgba(255,255,255,0.07);border-radius:12px;padding:12px 20px;display:inline-flex;align-items:center;gap:10px">
-      <div style="width:6px;height:6px;border-radius:50%;background:#d4f53c"></div>
-      <span style="font-size:10px;color:#555550;letter-spacing:.06em">devradar.vercel.app</span>
-      <span style="font-size:10px;color:#3a3a3a">·</span>
-      <span style="font-size:10px;color:#3a3a3a;letter-spacing:.04em">backend on render</span>
+  <div class="pills">
+    <span class="pill">no code</span>
+    <span class="pill">persistent memory</span>
+    <span class="pill">auto-recover</span>
+    <span class="pill">cron scheduler</span>
+    <span class="pill">real browser</span>
+    <span class="pill">HydraDB + Groq</span>
+  </div>
+
+  <div class="terminal-preview">
+    <div class="term-bar">
+      <div class="term-dot"></div>
+      <div class="term-dot"></div>
+      <div class="term-dot"></div>
+      <span class="term-title">terminal</span>
+    </div>
+    <div class="term-body">
+      <div class="term-line"><span class="term-prompt">$</span><span class="term-cmd">git clone https://github.com/yranjan06/MnemOS</span></div>
+      <div class="term-line"><span class="term-prompt">$</span><span class="term-cmd">cp .env.example .env &amp;&amp; docker compose up --build</span></div>
+      <div class="term-out"><span class="term-ok">&gt;&gt;</span> memory core initialized</div>
+      <div class="term-out"><span class="term-ok">&gt;&gt;</span> agent runtime ready &mdash; localhost:3000</div>
+      <div class="term-line"><span class="term-prompt">$</span><span class="term-cursor"></span></div>
     </div>
   </div>
-</section>
 
-<div class="stats">
-  <div class="stat"><div class="stat-n">20+</div><div class="stat-l">startups mapped</div></div>
-  <div class="stat"><div class="stat-n">15+</div><div class="stat-l">hackathons tracked</div></div>
-  <div class="stat"><div class="stat-n">30</div><div class="stat-l">skills in taxonomy</div></div>
-</div>
+  <p class="scroll-hint">scroll to explore</p>
+</hero>
 
-<section class="sec">
-  <div class="sec-lbl">// <span>features</span> //</div>
-  <div class="sec-h">everything you need to<br>land your first startup role.</div>
-  <div style="font-size:12px;color:#555550;max-width:400px;line-height:1.75">Built in 48 hours for WikiThon 2025. Every feature is real, every dataset is curated, every AI response is context-aware.</div>
-
-  <div class="feat-grid">
-    <div class="feat-card">
-      <div class="feat-icon">
-        <canvas id="icon1" width="20" height="20"></canvas>
-      </div>
-      <div class="feat-title">// stack matching //</div>
-      <div class="feat-body">Enter your skills. Get ranked against <strong>20 top Indian startups</strong> by stack overlap. Razorpay, Groww, Zepto and more.</div>
-    </div>
-    <div class="feat-card">
-      <div class="feat-icon">
-        <canvas id="icon2" width="20" height="20"></canvas>
-      </div>
-      <div class="feat-title">// gap analysis //</div>
-      <div class="feat-body">Claude AI pinpoints your missing skills with <strong>salary impact and timelines.</strong> TypeScript in 2 weeks → +18%.</div>
-    </div>
-    <div class="feat-card">
-      <div class="feat-icon">
-        <canvas id="icon3" width="20" height="20"></canvas>
-      </div>
-      <div class="feat-title">// hackathon radar //</div>
-      <div class="feat-body">Live hackathons scored against your stack. <strong>Deadline urgency surfaced</strong> on every return visit.</div>
-    </div>
-    <div class="feat-card">
-      <div class="feat-icon" style="background:#0f0f0f;border-color:rgba(212,245,60,.3)">
-        <i class="ti ti-brain" style="font-size:14px;color:#d4f53c" aria-hidden="true"></i>
-      </div>
-      <div class="feat-title">// HydraDB memory //</div>
-      <div class="feat-body">Persistent cross-session memory. <strong>Returns are context-aware</strong> — Claude references your history.</div>
-    </div>
-    <div class="feat-card">
-      <div class="feat-icon">
-        <i class="ti ti-briefcase" style="font-size:14px;color:#8aaa18" aria-hidden="true"></i>
-      </div>
-      <div class="feat-title">// interview prep //</div>
-      <div class="feat-body">Company-specific questions generated by Claude. <strong>Razorpay, Groww, CRED</strong> — each startup's real interview patterns.</div>
-    </div>
-    <div class="feat-card">
-      <div class="feat-icon">
-        <i class="ti ti-shield-check" style="font-size:14px;color:#8aaa18" aria-hidden="true"></i>
-      </div>
-      <div class="feat-title">// fallback mode //</div>
-      <div class="feat-body">If HydraDB is unreachable, an in-memory Map takes over. <strong>The demo never crashes.</strong></div>
-    </div>
+<div class="features">
+  <div class="feat">
+    <div class="feat-tag">memory</div>
+    <div class="feat-title">remember node</div>
+    <div class="feat-desc">saves observations, prices, outcomes to HydraDB. persists across every run and container restart.</div>
   </div>
-</section>
-
-<div class="divider"></div>
-
-<section class="mem-sec">
-  <div class="mem-inner">
-    <div class="mem-left">
-      <div class="sec-lbl">// <span>persistent memory</span> //</div>
-      <div class="sec-h" style="font-size:18px;margin-bottom:12px">HydraDB is not a<br>side feature. It is<br>the product.</div>
-      <div style="font-size:12px;color:#555550;line-height:1.8;margin-bottom:20px">Every startup you view, every gap Claude identifies, every hackathon you bookmark — stored as a living profile. Returns feel like talking to someone who was paying attention.</div>
-      <div style="font-size:11px;color:#d4f53c;font-weight:700;letter-spacing:.04em">→ run node seed-demo.js to see it in action</div>
-    </div>
-    <div class="mem-right">
-      <div style="font-size:9px;color:#555550;letter-spacing:.1em;text-transform:uppercase;margin-bottom:10px">demo_user_001 · 7-day profile</div>
-      <div class="mem-card">
-        <div class="mem-row"><div class="mem-dot"></div><strong>day 1</strong> · viewed Razorpay, Groww</div>
-        <div class="mem-row"><div class="mem-dot"></div><strong>day 3</strong> · gap analysis run → TypeScript, Docker</div>
-        <div class="mem-row"><div class="mem-dot"></div><strong>day 5</strong> · bookmarked ETHIndia 2025</div>
-        <div class="mem-row"><div class="mem-dot"></div><strong>day 7</strong> · return visit triggers memory recall</div>
-        <div class="mem-row" style="margin-top:6px;padding-top:12px;border-top:1px solid rgba(212,245,60,.1)">
-          <i class="ti ti-sparkles" style="font-size:12px;color:#d4f53c;flex-shrink:0" aria-hidden="true"></i>
-          <span style="color:#8aaa18;font-size:10px;line-height:1.6">Welcome back — last visit you explored Razorpay. TypeScript closes 60% of their roles. ETHIndia in 6 days.</span>
-        </div>
-      </div>
-    </div>
+  <div class="feat">
+    <div class="feat-tag">memory</div>
+    <div class="feat-title">recall node</div>
+    <div class="feat-desc">fetches relevant past memory via graph-enhanced search. finds useful context, not just similar text.</div>
   </div>
-</section>
-
-<section class="stack-sec">
-  <div class="sec-lbl">// <span>tech stack</span> //</div>
-  <div class="sec-h" style="font-size:16px;margin-bottom:4px">built with real tools.</div>
-  <div style="font-size:11px;color:#555550;margin-bottom:4px">React 18 · Node.js · Anthropic Claude · HydraDB · Vercel · Render</div>
-  <div class="scroll-row">
-    <span class="s-tag s-tag-lime">React 18</span>
-    <span class="s-tag s-tag-lime">Tailwind CSS</span>
-    <span class="s-tag s-tag-lime">Node.js</span>
-    <span class="s-tag s-tag-lime">Express</span>
-    <span class="s-tag s-tag-lime">Claude API</span>
-    <span class="s-tag s-tag-lime">HydraDB SDK</span>
-    <span class="s-tag s-tag-dim">Vite</span>
-    <span class="s-tag s-tag-dim">Render</span>
-    <span class="s-tag s-tag-dim">Vercel</span>
-    <span class="s-tag s-tag-dim">JSON datasets</span>
+  <div class="feat">
+    <div class="feat-tag">recovery</div>
+    <div class="feat-title">recover node</div>
+    <div class="feat-desc">wraps any action in auto error handling. checks memory for past failures, asks llm for a fix, retries.</div>
   </div>
-</section>
-
-<section class="how-sec">
-  <div class="sec-lbl">// <span>how it works</span> //</div>
-  <div class="sec-h" style="font-size:16px">four steps. one screen.</div>
-  <div class="step-grid">
-    <div class="step">
-      <div class="step-num">01</div>
-      <div class="step-title">enter your stack</div>
-      <div class="step-body">Pick your skills from 30 curated options. React, Python, Go, Docker — whatever you know.</div>
-    </div>
-    <div class="step">
-      <div class="step-num">02</div>
-      <div class="step-title">get matched</div>
-      <div class="step-body">Claude deep-analyses your top 5 startup matches. Real tech stacks, real salary ranges.</div>
-    </div>
-    <div class="step">
-      <div class="step-num">03</div>
-      <div class="step-title">find the gaps</div>
-      <div class="step-body">AI generates a prioritised skill gap report with weeks to learn and salary impact.</div>
-    </div>
-    <div class="step">
-      <div class="step-num">04</div>
-      <div class="step-title">come back richer</div>
-      <div class="step-body">HydraDB stores everything. Next visit picks up exactly where you left off.</div>
-    </div>
-  </div>
-</section>
-
-<div style="background:#0a0a0a;border-top:1px solid rgba(255,255,255,0.06);border-bottom:1px solid rgba(255,255,255,0.06);padding:48px 28px;text-align:center">
-  <div style="font-size:9px;color:#555550;letter-spacing:.14em;text-transform:uppercase;margin-bottom:16px">// ready to map your career? //</div>
-  <div style="font-size:20px;font-weight:700;color:#f0f0ee;letter-spacing:-.01em;margin-bottom:8px">Your career. One screen.<br>Always remembered.</div>
-  <div style="font-size:12px;color:#555550;margin-bottom:28px">Free · Open source · Built in 48h</div>
-  <div style="display:flex;gap:12px;justify-content:center">
-    <button class="btn-fill">launch devradar →</button>
-    <button class="btn-ghost">github repo</button>
+  <div class="feat">
+    <div class="feat-tag">adaptation</div>
+    <div class="feat-title">plan node</div>
+    <div class="feat-desc">reads memory context, llm picks best strategy from your options. different decision every run.</div>
   </div>
 </div>
 
-<footer class="footer">
-  <div class="footer-logo">
-    <canvas id="footer-radar" width="22" height="22"></canvas>
-    <span class="footer-wordmark">devradar</span>
-    <span style="font-size:9px;color:#2e2e2e;margin-left:4px;letter-spacing:.06em">WikiThon 2025</span>
-  </div>
-  <div class="footer-links">
-    <span class="footer-link">github</span>
-    <span class="footer-link">vercel</span>
-    <span class="footer-link">backend</span>
-    <span class="footer-link">seed demo</span>
-  </div>
+<footer>
+  <span class="footer-txt">powered by HydraDB &middot; Groq &middot; Playwright</span>
+  <span class="footer-txt">agents that remember. workflows that adapt. zero code.</span>
 </footer>
 
 <script>
-const LIME='#d4f53c',RING_C='#383830',CROSS_C='#232320',BG_DOT='#191917';
-const GRID=13,CX=6,CY=6;
+const cv = document.getElementById('hero-logo');
+const ctx = cv.getContext('2d');
 
-function drawRadar(canvas,size,angle,pulse,inv){
-  const ctx=canvas.getContext('2d');
-  ctx.clearRect(0,0,size,size);
-  const PAD=size*.07,AREA=size-PAD*2,CELL=AREA/(GRID-1),DR=Math.max(1,CELL*.32);
-  ctx.fillStyle=inv?'#e8e8e0':'#080808';
-  ctx.fillRect(0,0,size,size);
-  const ox=PAD,oy=PAD;
-  const sweep=((angle%(Math.PI*2))+Math.PI*2)%(Math.PI*2);
-  for(let gy=0;gy<GRID;gy++){
-    for(let gx=0;gx<GRID;gx++){
-      const px=ox+gx*CELL,py=oy+gy*CELL;
-      const dx=gx-CX,dy=gy-CY,dist=Math.sqrt(dx*dx+dy*dy);
-      if(dist>6.6)continue;
-      const isC=(gx===CX&&gy===CY);
-      const isB=(gx===9&&gy===3);
-      const isR=Math.abs(dist-2)<.58||Math.abs(dist-4)<.58||Math.abs(dist-6)<.58;
-      const isCr=(gx===CX||gy===CY)&&dist<=6.2;
-      let da=((Math.atan2(dy,dx)%(Math.PI*2))+Math.PI*2)%(Math.PI*2);
-      let trail=(sweep-da+Math.PI*2)%(Math.PI*2);
-      let sb=0;
-      if(!isC&&dist>.5){
-        if(trail<.1)sb=1;
-        else if(trail<1.4)sb=.9*(1-(trail-.1)/1.3);
-      }
-      let color,alpha=1;
-      if(isC){color=LIME}
-      else if(isB){
-        const bp=Math.abs(Math.sin(pulse));
-        color=LIME;alpha=sb>.5?1:.25+bp*.75;
-      } else if(sb>0){
-        if(isR){const t=sb;color=`rgb(${Math.round(212*t+42*(1-t))},${Math.round(245*t+42*(1-t))},${Math.round(60*t+8*(1-t))})` }
-        else{color=`rgba(212,245,60,${sb*.45})`}
-      } else if(isR){color=inv?'#aaaaaa':RING_C}
-      else if(isCr){color=inv?'#cccccc':CROSS_C}
-      else{color=inv?'#dddddd':BG_DOT}
-      ctx.globalAlpha=alpha;
-      ctx.beginPath();ctx.arc(px,py,DR,0,Math.PI*2);
-      ctx.fillStyle=color;ctx.fill();
-      ctx.globalAlpha=1;
-    }
-  }
-  if(size>=48){
-    const ll=(GRID/2-.5)*CELL;
-    ctx.beginPath();
-    ctx.moveTo(ox+CX*CELL,oy+CY*CELL);
-    ctx.lineTo(ox+CX*CELL+Math.cos(sweep)*ll,oy+CY*CELL+Math.sin(sweep)*ll);
-    ctx.strokeStyle='rgba(212,245,60,0.15)';
-    ctx.lineWidth=Math.max(.5,size*.006);ctx.stroke();
-  }
-}
-
-function drawSmallIcon(canvas,size,angle,pulse,color){
-  const ctx=canvas.getContext('2d');
-  ctx.clearRect(0,0,size,size);
-  const c=size/2,r=size*.38;
-  ctx.fillStyle=color||LIME;
-  ctx.beginPath();ctx.arc(c,c,size*.08,0,Math.PI*2);ctx.fill();
-  const sweep=((angle%(Math.PI*2))+Math.PI*2)%(Math.PI*2);
-  [.38,.62,.88].forEach(f=>{
-    const ri=r*f;
-    for(let a=0;a<Math.PI*2;a+=Math.PI/6){
-      const x=c+Math.cos(a)*ri,y=c+Math.sin(a)*ri;
-      let da=((a%(Math.PI*2))+Math.PI*2)%(Math.PI*2);
-      let trail=(sweep-da+Math.PI*2)%(Math.PI*2);
-      let bright=trail<.15?1:trail<1.2?.8*(1-(trail-.15)/1.05):0;
-      const dr=size*.055;
-      const base=bright>0?LIME:'#2a2a28';
-      ctx.globalAlpha=bright>0?bright:.6;
-      ctx.beginPath();ctx.arc(x,y,dr,0,Math.PI*2);
-      ctx.fillStyle=base;ctx.fill();
-    }
-  });
-  ctx.globalAlpha=1;
-}
-
-const FONT={
-  D:[[1,1,1,0,0],[1,0,0,1,0],[1,0,0,0,1],[1,0,0,0,1],[1,0,0,0,1],[1,0,0,1,0],[1,1,1,0,0]],
-  E:[[1,1,1,1,1],[1,0,0,0,0],[1,0,0,0,0],[1,1,1,1,0],[1,0,0,0,0],[1,0,0,0,0],[1,1,1,1,1]],
-  V:[[1,0,0,0,1],[1,0,0,0,1],[1,0,0,0,1],[0,1,0,1,0],[0,1,0,1,0],[0,0,1,0,0],[0,0,1,0,0]],
-  R:[[1,1,1,1,0],[1,0,0,0,1],[1,0,0,0,1],[1,1,1,1,0],[1,0,1,0,0],[1,0,0,1,0],[1,0,0,0,1]],
-  A:[[0,0,1,0,0],[0,1,0,1,0],[1,0,0,0,1],[1,0,0,0,1],[1,1,1,1,1],[1,0,0,0,1],[1,0,0,0,1]]
+const GLYPHS={
+  'M':[[1,0,0,0,1],[1,1,0,1,1],[1,0,1,0,1],[1,0,0,0,1],[1,0,0,0,1],[1,0,0,0,1],[1,0,0,0,1]],
+  'n':[[0,0,0,0],[0,0,0,0],[1,1,1,0],[1,0,0,1],[1,0,0,1],[1,0,0,1],[1,0,0,1]],
+  'e':[[0,0,0,0],[0,0,0,0],[0,1,1,0],[1,0,0,1],[1,1,1,1],[1,0,0,0],[0,1,1,1]],
+  'm':[[0,0,0,0,0],[0,0,0,0,0],[1,1,0,1,1],[1,0,1,0,1],[1,0,1,0,1],[1,0,0,0,1],[1,0,0,0,1]],
+  'O':[[0,1,1,1,0],[1,0,0,0,1],[1,0,0,0,1],[1,0,0,0,1],[1,0,0,0,1],[1,0,0,0,1],[0,1,1,1,0]],
+  'S':[[0,1,1,1,0],[1,0,0,0,1],[1,0,0,0,0],[0,1,1,1,0],[0,0,0,0,1],[1,0,0,0,1],[0,1,1,1,0]],
 };
-const WORD='DEVRADAR'.split('');
-const STEP=12,CHAR_W=5*STEP,GAP=STEP;
-const TOTAL_W=WORD.length*CHAR_W+(WORD.length-1)*GAP;
-const TEXT_H=7*STEP;
-const PT=document.getElementById('pixel-text');
-const ptCtx=PT.getContext('2d');
-let dotReveal=new Array(WORD.length*5*7).fill(0);
-let revealFrame=0;
 
-function drawPixelText(angle,pulse){
-  ptCtx.clearRect(0,0,624,96);
-  const offX=(624-TOTAL_W)/2,offY=(96-TEXT_H)/2;
-  const sweep=((angle%(Math.PI*2))+Math.PI*2)%(Math.PI*2);
-  WORD.forEach((ch,ci)=>{
-    const rows=FONT[ch]||FONT.D;
-    const charX=offX+ci*(CHAR_W+GAP);
-    rows.forEach((row,ry)=>{
-      row.forEach((px,rx)=>{
-        const x=charX+rx*STEP+STEP/2;
-        const y=offY+ry*STEP+STEP/2;
-        const idx=(ci*35)+(ry*5+rx);
-        const revealed=dotReveal[idx];
-        const isLit=px===1;
-        if(isLit&&revealed<1){dotReveal[idx]=Math.min(1,revealed+.07);}
-        const alpha=isLit?dotReveal[idx]:.5;
-        let color;
-        if(isLit){
-          const ang=Math.atan2(y-48,x-312);
-          const da=((ang%(Math.PI*2))+Math.PI*2)%(Math.PI*2);
-          const trail=(sweep-da+Math.PI*2)%(Math.PI*2);
-          const sb=trail<.08?1:trail<1.5?.8*(1-(trail-.08)/1.42):0;
-          if(sb>.1){
-            const t=sb;
-            color=`rgb(${Math.round(212+40*t)},${Math.round(245*t+180*(1-t))},${Math.round(60*t)})`;
-          } else {
-            color=LIME;
-          }
-        } else {
-          color='#1e1e1c';
-        }
-        ptCtx.globalAlpha=alpha;
-        ptCtx.beginPath();ptCtx.arc(x,y,STEP*.34,0,Math.PI*2);
-        ptCtx.fillStyle=color;ptCtx.fill();
-        ptCtx.globalAlpha=1;
-      });
-    });
-  });
-  if(revealFrame<80){
-    const dotsToReveal=Math.floor(revealFrame*2.5);
-    for(let i=0;i<Math.min(dotsToReveal,dotReveal.length);i++){
-      if(dotReveal[i]<1){dotReveal[i]=Math.min(1,dotReveal[i]+.04);}
-    }
-    revealFrame++;
-  }
+const TEXT='MnemOS';
+const TAGLINE='build agents that never forget';
+
+let P,G,S,LG,CW,CH,bigW,bigX,bigY,tagY,tagFontSize;
+let revealed=0,tagChars=0,phase=0,frame=0,blink=true,blinkT=0;
+let animStarted=false;
+
+function gw(ch){const g=GLYPHS[ch];return g?g[0].length:0;}
+function getLogoColCount(){
+  let cols=0;
+  for(let i=0;i<TEXT.length;i++){cols+=gw(TEXT[i]);if(i<TEXT.length-1)cols+=1.8;}
+  return cols;
+}
+function totalBigW(){let w=0;for(let i=0;i<TEXT.length;i++){w+=gw(TEXT[i])*S;if(i<TEXT.length-1)w+=LG;}return w;}
+function letterX(idx){let x=0;for(let i=0;i<idx;i++)x+=gw(TEXT[i])*S+LG;return x;}
+function drawGlyph(g,x,y){ctx.fillStyle='#fff';for(let r=0;r<g.length;r++)for(let c=0;c<g[r].length;c++)if(g[r][c])ctx.fillRect(x+c*S,y+r*S,P,P);}
+
+function setup(){
+  CW = cv.offsetWidth || window.innerWidth;
+  const targetLogoW = CW * 0.88;
+  const letterCols = 28;
+  const letterGaps = 5;
+  S = Math.floor(targetLogoW / (letterCols + letterGaps * 2.0));
+  P = Math.max(2, Math.floor(S * 0.78));
+  G = S - P;
+  LG = Math.floor(S * 2.0);
+  bigW = totalBigW();
+  bigX = Math.floor((CW - bigW) / 2);
+  bigY = Math.floor(S * 1.2);
+  tagFontSize = Math.max(11, Math.floor(S * 0.85));
+  tagY = bigY + 7*S + Math.floor(S * 1.8);
+  CH = tagY + tagFontSize + Math.floor(S * 1.5);
+  cv.width = CW;
+  cv.height = CH;
 }
 
-const heroR=document.getElementById('hero-radar');
-const navR=document.getElementById('nav-radar');
-const footR=document.getElementById('footer-radar');
-const i1=document.getElementById('icon1');
-const i2=document.getElementById('icon2');
-const i3=document.getElementById('icon3');
-
-let ang=0,pls=0,fr=0;
-function loop(){
-  ang+=0.016;pls+=0.065;fr++;
-  drawRadar(heroR,200,ang,pls,false);
-  drawPixelText(ang,pls);
-  if(fr%2===0){
-    drawRadar(navR,28,ang,pls,false);
-    drawRadar(footR,22,ang,pls,false);
+function draw(){
+  ctx.fillStyle='#000';
+  ctx.fillRect(0,0,CW,CH);
+  for(let i=0;i<Math.min(revealed,TEXT.length);i++){const g=GLYPHS[TEXT[i]];if(g)drawGlyph(g,bigX+letterX(i),bigY);}
+  blinkT++;
+  if(blinkT%16===0)blink=!blink;
+  if(phase===0&&blink&&revealed<TEXT.length){ctx.fillStyle='#fff';ctx.fillRect(bigX+letterX(revealed),bigY,P,7*S-G);}
+  if(phase>=1){
+    const tag=TAGLINE.slice(0,tagChars);
+    ctx.font=`bold ${tagFontSize}px "Courier New",monospace`;
+    ctx.fillStyle='rgba(255,255,255,0.42)';
+    ctx.textBaseline='top';
+    const tw=ctx.measureText(TAGLINE).width;
+    const tx=Math.floor((CW-tw)/2);
+    ctx.fillText(tag,tx,tagY);
+    if(phase===1&&tagChars<TAGLINE.length&&blink){ctx.fillStyle='rgba(255,255,255,0.42)';ctx.fillRect(tx+ctx.measureText(tag).width+2,tagY,Math.floor(tagFontSize*0.55),tagFontSize);}
   }
-  if(fr%4===0){
-    drawSmallIcon(i1,20,ang,pls,'#d4f53c');
-    drawSmallIcon(i2,20,ang+2.1,pls,'#d4f53c');
-    drawSmallIcon(i3,20,ang+4.2,pls,'#d4f53c');
-  }
-  requestAnimationFrame(loop);
+  frame++;
+  if(phase===0){if(frame%10===0&&revealed<TEXT.length)revealed++;if(revealed>=TEXT.length){phase=1;frame=0;}}
+  else if(phase===1){if(frame%3===0&&tagChars<TAGLINE.length)tagChars++;if(tagChars>=TAGLINE.length)phase=2;}
+  requestAnimationFrame(draw);
 }
-loop();
+
+function init(){
+  setup();
+  if(!animStarted){animStarted=true;draw();}
+}
+
+window.addEventListener('resize',()=>{setup();});
+init();
 </script>
+</body>
+</html>
